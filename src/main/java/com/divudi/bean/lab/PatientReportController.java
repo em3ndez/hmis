@@ -15,7 +15,6 @@ import com.divudi.data.InvestigationItemValueType;
 import com.divudi.data.InvestigationReportType;
 import com.divudi.data.MessageType;
 import com.divudi.data.Sex;
-import com.divudi.data.SmsSentResponse;
 import com.divudi.data.lab.Selectable;
 import com.divudi.ejb.EmailManagerEjb;
 import com.divudi.ejb.PatientReportBean;
@@ -40,8 +39,9 @@ import com.divudi.facade.PatientReportFacade;
 import com.divudi.facade.PatientReportItemValueFacade;
 import com.divudi.facade.SmsFacade;
 import com.divudi.facade.TestFlagFacade;
-import com.divudi.facade.UserPreferenceFacade;
 import com.divudi.bean.common.util.JsfUtil;
+import com.divudi.entity.clinical.ClinicalFindingValue;
+import com.divudi.facade.ClinicalFindingValueFacade;
 import com.lowagie.text.DocumentException;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -130,6 +130,8 @@ public class PatientReportController implements Serializable {
     SmsManagerEjb smsManager;
     @EJB
     SmsFacade smsFacade;
+    @EJB
+    ClinicalFindingValueFacade clinicalFindingValueFacade;
     //Controllers
     @Inject
     private PatientReportBean prBean;
@@ -173,7 +175,8 @@ public class PatientReportController implements Serializable {
     private List<PatientReport> recentReportsOrderedByDoctor;
     private String smsNumber;
     private String smsMessage;
-    private boolean showBackground=false;
+    private boolean showBackground = false;
+    private ClinicalFindingValue clinicalFindingValue;
 
     public String searchRecentReportsOrderedByMyself() {
         Doctor doctor;
@@ -644,6 +647,39 @@ public class PatientReportController implements Serializable {
         return 0.0;
     }
 
+    private double findPtReportItemVal(String nameOfIxItem) {
+        if (currentPatientReport == null) {
+            JsfUtil.addErrorMessage("No Report to calculate");
+            return 0;
+        }
+        if (currentPatientReport.getPatientReportItemValues() == null) {
+            JsfUtil.addErrorMessage("Report Items values is null");
+            return 0;
+        }
+        if (currentPatientReport.getPatientReportItemValues().isEmpty()) {
+            JsfUtil.addErrorMessage("Report Items values is empty");
+            return 0;
+        }
+        System.out.println("currentPatientReport = " + currentPatientReport);
+        System.out.println("currentPatientReport.getPatientReportItemValues() = " + currentPatientReport.getPatientReportItemValues());
+
+        for (PatientReportItemValue priv : currentPatientReport.getPatientReportItemValues()) {
+            if (priv != null) {
+                System.out.println("priv = " + priv);
+                System.out.println("priv in finding val is " + priv.getInvestigationItem().getName());
+                System.out.println("compairing are " + priv.getInvestigationItem().getId() + "  vs " + nameOfIxItem);
+                if (Objects.equals(priv.getInvestigationItem().getName(), nameOfIxItem)) {
+                    System.out.println("double val is " + priv.getDoubleValue());
+                    if (priv.getDoubleValue() == null) {
+                        return 0.0;
+                    }
+                    return priv.getDoubleValue();
+                }
+            }
+        }
+        return 0.0;
+    }
+
     public void calculate() {
         Date startTime = new Date();
         if (currentPatientReport == null) {
@@ -685,7 +721,13 @@ public class PatientReportController implements Serializable {
                 List<IxCal> ixCals = getIxCalFacade().findByJpql(sql, m);
                 double result = 0;
                 calString = "";
+
+                String baseJs = null;
                 for (IxCal c : ixCals) {
+                    if (c.getCalculationType() == CalculationType.JavaScript) {
+                        baseJs = c.getJavascript();
+                        break;
+                    }
                     if (c.getCalculationType() == CalculationType.Constant) {
                         calString = calString + c.getConstantValue();
                     }
@@ -742,6 +784,13 @@ public class PatientReportController implements Serializable {
                         calString = calString + currentPatientReport.getPatientInvestigation().getPatient().getAgeYears();
                     }
                 }
+
+                System.out.println("baseJs = " + baseJs);
+                if (baseJs != null) {
+                    calString = generateModifiedJavascriptFromBaseJavaScript(currentPatientReport, baseJs);
+                    System.out.println("calString = " + calString);
+                }
+
                 ScriptEngineManager mgr = new ScriptEngineManager();
                 ScriptEngine engine = mgr.getEngineByName("JavaScript");
                 try {
@@ -761,7 +810,67 @@ public class PatientReportController implements Serializable {
             getPirivFacade().edit(priv);
 
         }
-        commonController.printReportDetails(null, null, startTime, "Calculate Lab Calculations");
+
+    }
+
+    private String generateModifiedJavascriptFromBaseJavaScript(PatientReport pr, String baseJs) {
+        String modifiedJs = "";
+        if (pr == null) {
+            System.out.println("Debug: PatientReport is null");
+            return modifiedJs;
+        }
+        if (baseJs == null || baseJs.isEmpty()) {
+            System.out.println("Debug: Base JavaScript is null or empty");
+            return modifiedJs;
+        } else {
+            modifiedJs = baseJs;
+        }
+
+        if (pr.getPatientInvestigation() == null) {
+            System.out.println("Debug: PatientInvestigation is null");
+            return modifiedJs;
+        }
+        if (pr.getPatientInvestigation().getBillItem() == null) {
+            System.out.println("Debug: BillItem is null");
+            return modifiedJs;
+        }
+        if (pr.getPatientInvestigation().getBillItem().getBill() == null) {
+            System.out.println("Debug: Bill is null");
+            return modifiedJs;
+        }
+        if (pr.getPatientInvestigation().getBillItem().getBill().getPatient() == null) {
+            System.out.println("Debug: Patient is null");
+            return modifiedJs;
+        }
+
+        String sex = pr.getPatientInvestigation().getBillItem().getBill().getPatient().getPerson().getSex() == Sex.Male ? "male" : "female";
+        int ageInYears = pr.getPatientInvestigation().getBillItem().getBill().getPatient().getAgeYearsonBilledDate();
+
+        System.out.println("Debug: Sex is " + sex + ", Age is " + ageInYears);
+
+        Pattern pattern = Pattern.compile("\\{\\{[^}]+\\}\\}");
+        Matcher matcher = pattern.matcher(modifiedJs);
+
+        while (matcher.find()) {
+            String placeholder = matcher.group();
+            String placeholderWithoutBraces = placeholder.substring(2, placeholder.length() - 2); // Remove double braces for matching
+
+            System.out.println("Debug: Found placeholder " + placeholder);
+
+            if ("sex".equalsIgnoreCase(placeholderWithoutBraces)) {
+                modifiedJs = modifiedJs.replace(placeholder, sex);
+                System.out.println("Debug: Replaced " + placeholder + " with " + sex);
+            } else if ("age".equalsIgnoreCase(placeholderWithoutBraces)) {
+                modifiedJs = modifiedJs.replace(placeholder, String.valueOf(ageInYears));
+                System.out.println("Debug: Replaced " + placeholder + " with " + ageInYears);
+            } else {
+                double reportItemValue = findPtReportItemVal(placeholderWithoutBraces);
+                modifiedJs = modifiedJs.replace(placeholder, String.valueOf(reportItemValue));
+                System.out.println("Debug: Replaced " + placeholder + " with " + reportItemValue);
+            }
+        }
+
+        return modifiedJs;
     }
 
     private PatientReportItemValue findItemValue(PatientReport pr, InvestigationItem ii) {
@@ -959,7 +1068,6 @@ public class PatientReportController implements Serializable {
 
         getFacade().edit(currentPatientReport);
         getPiFacade().edit(currentPtIx);
-        commonController.printReportDetails(null, null, startTime, "Lab Report Save");
 
         //JsfUtil.addSuccessMessage("Saved");
     }
@@ -1479,12 +1587,12 @@ public class PatientReportController implements Serializable {
                 getEmailFacade().create(e);
             }
         }
-        if(currentPtIx.getBillItem().getBill().getPatient().getPatientPhoneNumber()!=null){
+        if (currentPtIx.getBillItem().getBill().getPatient().getPatientPhoneNumber() != null) {
             Patient tmp = currentPtIx.getBillItem().getBill().getPatient();
             tmp.getPerson().setSmsNumber(String.valueOf(tmp.getPatientPhoneNumber()));
         }
-        if (getSessionController().getLoggedPreference().isPartialPaymentOfOpdBillsAllowed()) {
-            if (getCurrentPtIx().getBillItem().getBill().getBalance() == 0.0) {
+        if (getSessionController().getApplicationPreference().isPartialPaymentOfOpdBillsAllowed()) {
+            if (getCurrentPtIx().getBillItem().getBill().getBackwardReferenceBill().getBalance() < 1.0) {
                 if (!currentPtIx.getBillItem().getBill().getPatient().getPerson().getSmsNumber().trim().equals("")) {
                     Sms e = new Sms();
                     e.setPending(true);
@@ -1503,7 +1611,7 @@ public class PatientReportController implements Serializable {
                     getSmsFacade().create(e);
                 }
             }
-        }else{
+        } else {
             if (!currentPtIx.getBillItem().getBill().getPatient().getPerson().getSmsNumber().trim().equals("")) {
                 Sms e = new Sms();
                 e.setPending(true);
@@ -1543,7 +1651,53 @@ public class PatientReportController implements Serializable {
         }
 
         JsfUtil.addSuccessMessage("Approved");
-        commonController.printReportDetails(null, null, startTime, "Lab Report Aprove.");
+
+    }
+
+    public void approveEmrPatientReport() {
+        Date startTime = new Date();
+        if (currentPatientReport == null) {
+            JsfUtil.addErrorMessage("Nothing to approve");
+            return;
+        }
+        if (currentPatientReport.getDataEntered() == false) {
+            JsfUtil.addErrorMessage("First Save report");
+            return;
+        }
+
+        BooleanMessage tbm = canApproveThePatientReport(currentPatientReport);
+        if (!tbm.isFlag()) {
+            JsfUtil.addErrorMessage(tbm.getMessage());
+            return;
+        }
+
+        getCurrentPtIx().setApproved(true);
+        currentPtIx.setApproveAt(Calendar.getInstance().getTime());
+        currentPtIx.setApproveUser(getSessionController().getLoggedUser());
+        currentPtIx.setApproveDepartment(getSessionController().getDepartment());
+        getPiFacade().edit(currentPtIx);
+        currentPatientReport.setApproved(Boolean.FALSE);
+        currentPatientReport.setApproved(Boolean.TRUE);
+        currentPatientReport.setApproveAt(Calendar.getInstance().getTime());
+        currentPatientReport.setApproveDepartment(getSessionController().getLoggedUser().getDepartment());
+        currentPatientReport.setApproveInstitution(getSessionController().getLoggedUser().getInstitution());
+        currentPatientReport.setApproveUser(getSessionController().getLoggedUser());
+        currentPatientReport.setQrCodeContentsDetailed(generateQrCodeDetails(currentPatientReport));
+        currentPatientReport.setQrCodeContentsLink(generateQrCodeLink(currentPatientReport));
+        getFacade().edit(currentPatientReport);
+        getStaffController().setCurrent(getSessionController().getLoggedUser().getStaff());
+        getTransferController().setStaff(getSessionController().getLoggedUser().getStaff());
+
+        if (clinicalFindingValue != null) {
+            getClinicalFindingValue().setPatientInvestigation(currentPtIx);
+            if (clinicalFindingValue.getId() != null) {
+                clinicalFindingValueFacade.edit(clinicalFindingValue);
+            }
+            clinicalFindingValue = null;
+        }
+
+        JsfUtil.addSuccessMessage("Approved");
+
     }
 
     public void sendSmsForPatientReport() {
@@ -1578,15 +1732,14 @@ public class PatientReportController implements Serializable {
             e.setPending(false);
             getSmsFacade().create(e);
 
-            SmsSentResponse sent = smsManager.sendSmsByApplicationPreference(e.getReceipientNumber(), e.getSendingMessage(),
-                    sessionController.getApplicationPreference());
-            e.setSentSuccessfully(sent.isSentSuccefully());
-            e.setReceivedMessage(sent.getReceivedMessage());
+            Boolean sent = smsManager.sendSms(e);
+            e.setSentSuccessfully(sent);
             getSmsFacade().edit(e);
+
         }
 
         JsfUtil.addSuccessMessage("SMS Sent");
-//        commonController.printReportDetails(null, null, startTime, "Lab Report Aprove.");
+//        
     }
 
     public void reverseApprovalOfPatientReport() {
@@ -1646,7 +1799,6 @@ public class PatientReportController implements Serializable {
         } catch (Exception e) {
         }
 
-        commonController.printReportDetails(null, null, startTime, "Lab Report Aprove.");
     }
 
     public void printPatientReport() {
@@ -1659,6 +1811,7 @@ public class PatientReportController implements Serializable {
         currentPtIx.setPrintingAt(Calendar.getInstance().getTime());
         currentPtIx.setPrintingUser(getSessionController().getLoggedUser());
         currentPtIx.setPrintingDepartment(getSessionController().getDepartment());
+        currentPtIx.setPrinted(true);
         getPiFacade().edit(currentPtIx);
 
         currentPatientReport.setPrinted(Boolean.TRUE);
@@ -1668,6 +1821,28 @@ public class PatientReportController implements Serializable {
         currentPatientReport.setPrintingUser(getSessionController().getLoggedUser());
         getFacade().edit(currentPatientReport);
 
+    }
+    
+    public void printPatientLabReport() {
+        if (currentPatientReport == null) {
+            JsfUtil.addErrorMessage("Nothing to approve");
+            return;
+        }
+        currentPtIx.setPrinted(true);
+        currentPtIx.setPrintingAt(Calendar.getInstance().getTime());
+        currentPtIx.setPrintingUser(getSessionController().getLoggedUser());
+        currentPtIx.setPrintingDepartment(getSessionController().getDepartment());
+        currentPtIx.setPrinted(true);
+        getPiFacade().edit(currentPtIx);
+
+        currentPatientReport.setPrinted(Boolean.TRUE);
+        currentPatientReport.setPrintingAt(Calendar.getInstance().getTime());
+        currentPatientReport.setPrintingDepartment(getSessionController().getLoggedUser().getDepartment());
+        currentPatientReport.setPrintingInstitution(getSessionController().getLoggedUser().getInstitution());
+        currentPatientReport.setPrintingUser(getSessionController().getLoggedUser());
+        currentPatientReport.setPrinted(true);
+        
+        getFacade().edit(currentPatientReport);
     }
 
     public void pdfPatientReport() throws DocumentException, com.lowagie.text.DocumentException, IOException {
@@ -2079,6 +2254,14 @@ public class PatientReportController implements Serializable {
         this.showBackground = showBackground;
     }
 
+    public ClinicalFindingValue getClinicalFindingValue() {
+        return clinicalFindingValue;
+    }
+
+    public void setClinicalFindingValue(ClinicalFindingValue clinicalFindingValue) {
+        this.clinicalFindingValue = clinicalFindingValue;
+    }
+
     @FacesConverter(forClass = PatientReport.class)
     public static class PatientReportControllerConverter implements Converter {
 
@@ -2146,7 +2329,5 @@ public class PatientReportController implements Serializable {
     public void setSmsFacade(SmsFacade smsFacade) {
         this.smsFacade = smsFacade;
     }
-    
-    
 
 }

@@ -94,7 +94,7 @@ public class ChannelReportTempController implements Serializable {
     @Inject
     InstitutionController institutionController;
     @Inject
-    SheduleController sheduleController;
+    ChannelScheduleController sheduleController;
     //
     List<Bill> bills;
     List<AgentReferenceBook> agentReferenceBooks;
@@ -114,6 +114,7 @@ public class ChannelReportTempController implements Serializable {
     boolean sessoinDate;
     boolean paid;
     boolean scan;
+    
 
     /**
      * Creates a new instance of ChannelReportTempController
@@ -1139,11 +1140,11 @@ public class ChannelReportTempController implements Serializable {
         this.scan = scan;
     }
 
-    public SheduleController getSheduleController() {
+    public ChannelScheduleController getSheduleController() {
         return sheduleController;
     }
 
-    public void setSheduleController(SheduleController sheduleController) {
+    public void setSheduleController(ChannelScheduleController sheduleController) {
         this.sheduleController = sheduleController;
     }
 

@@ -21,7 +21,6 @@ import com.divudi.data.ItemLight;
 import com.divudi.data.PaymentMethod;
 import com.divudi.data.Sex;
 import com.divudi.data.Title;
-import com.divudi.data.dataStructure.BillListWithTotals;
 import com.divudi.data.dataStructure.PaymentMethodData;
 import com.divudi.data.dataStructure.YearMonthDay;
 import com.divudi.ejb.BillEjb;
@@ -47,7 +46,6 @@ import com.divudi.entity.Item;
 import com.divudi.entity.Patient;
 import com.divudi.entity.Payment;
 import com.divudi.entity.PaymentScheme;
-import com.divudi.entity.Person;
 import com.divudi.entity.Staff;
 import com.divudi.entity.UserPreference;
 import com.divudi.entity.WebUser;
@@ -151,6 +149,8 @@ public class CollectingCentreBillController implements Serializable, ControllerW
     StaffBean staffBean;
     @Inject
     CategoryController categoryController;
+    @Inject
+    ConfigOptionApplicationController configOptionApplicationController;
     /**
      * Properties
      */
@@ -823,6 +823,7 @@ public class CollectingCentreBillController implements Serializable, ControllerW
             }
             b.setBillItems(list);
             b.setBillTotal(b.getNetTotal());
+            b.setIpOpOrCc("CC");
             getBillFacade().edit(b);
             getBillBean().calculateBillItems(b, getLstBillEntries());
             b.setBalance(0.0);
@@ -860,7 +861,6 @@ public class CollectingCentreBillController implements Serializable, ControllerW
         checkBillValues();
         printPreview = true;
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Lab/cc/cc billing(/faces/collecting_centre/bill.xhtml)");
     }
 
     public void updateBallance(Institution ins, double transactionValue, HistoryType historyType, Bill bill, String refNo) {
@@ -939,7 +939,7 @@ public class CollectingCentreBillController implements Serializable, ControllerW
             b.setBackwardReferenceBill(tmp);
             dbl += b.getNetTotal();
 
-            if (getSessionController().getLoggedPreference().isPartialPaymentOfOpdBillsAllowed()) {
+            if (getSessionController().getApplicationPreference().isPartialPaymentOfOpdBillsAllowed()) {
                 b.setCashPaid(reminingCashPaid);
 
                 if (reminingCashPaid > b.getTransSaleBillTotalMinusDiscount()) {
@@ -980,7 +980,7 @@ public class CollectingCentreBillController implements Serializable, ControllerW
             getBillSearch().setPaymentMethod(b.getPaymentMethod());
             getBillSearch().setComment("Batch Cancell");
             //////// // System.out.println("ggg : " + getBillSearch().getComment());
-            getBillSearch().cancelBill();
+            getBillSearch().cancelOpdBill();
         }
 
         tmp.copy(billedBill);
@@ -1092,14 +1092,15 @@ public class CollectingCentreBillController implements Serializable, ControllerW
             JsfUtil.addErrorMessage("Please select a collecting centre");
             return true;
         }
-        if (referralId == null || referralId.trim().equals("")) {
-            JsfUtil.addErrorMessage("Please enter a referrance number");
-            return true;
+        boolean collectingCentreBillingRequiresReferanceNumbers = configOptionApplicationController.getBooleanValueByKey("Collecting Centre Billing Requires Referance Numbers", true);
+        boolean collectingCentreBillingRequiresCreditBalanceManagement = configOptionApplicationController.getBooleanValueByKey("Collecting Centre Billing Requires Credit Balance Management", true);
+
+        if (collectingCentreBillingRequiresReferanceNumbers) {
+            if (referralId == null || referralId.trim().equals("")) {
+                JsfUtil.addErrorMessage("Please enter a referrance number");
+                return true;
+            }
         }
-//        else if (collectingCenterReferranceNumberAlreadyUsed(collectingCentre)) {
-//            JsfUtil.addErrorMessage("Referral number alredy entered");
-//            return true;
-//        }
 
         if (getLstBillEntries().isEmpty()) {
             JsfUtil.addErrorMessage("Please Add tests before billing");
@@ -1113,29 +1114,25 @@ public class CollectingCentreBillController implements Serializable, ControllerW
             }
         }
 
-        ///not wanted 
-//        if ((collectingCentre.getBallance() - Math.abs(feeTotalExceptCcfs)) < 0 - collectingCentre.getStandardCreditLimit()) {
-//            JsfUtil.addErrorMessage("This bill excees the Collecting Centre Limit");
-//            return true;
-//        }
-        if (collectingCentre.getBallance() - feeTotalExceptCcfs < 0 - collectingCentre.getAllowedCredit()) {
-            JsfUtil.addErrorMessage("Collecting Centre Ballance is Not Enough");
-            return true;
+        double awailableBalance = Math.abs(collectingCentre.getBallance() + Math.abs(collectingCentre.getAllowedCredit()));
+
+        if (collectingCentreBillingRequiresCreditBalanceManagement) {
+            if (awailableBalance < Math.abs(feeTotalExceptCcfs)) {
+                JsfUtil.addErrorMessage("Collecting Centre Balance is Not Enough");
+                return true;
+            }
         }
 
-//        if (agentReferenceBookController.numberHasBeenIssuedToTheAgent(getReferralId())) {
-//            JsfUtil.addErrorMessage("Invaild Reference Number.");
-//            return true;
-//        }
-        if (agentReferenceBookController.agentReferenceNumberIsAlredyUsed(getReferralId(), collectingCentre, BillType.CollectingCentreBill, PaymentMethod.Agent)) {
-            JsfUtil.addErrorMessage("This Reference Number is alredy Used.");
-            setReferralId("");
-            return true;
-        }
-
-        if (!agentReferenceBookController.numberHasBeenIssuedToTheAgent(collectingCentre, getReferralId())) {
-            JsfUtil.addErrorMessage("This Reference Number is Blocked Or This channel Book is Not Issued.");
-            return true;
+        if (collectingCentreBillingRequiresReferanceNumbers) {
+            if (agentReferenceBookController.agentReferenceNumberIsAlredyUsed(getReferralId(), collectingCentre, BillType.CollectingCentreBill, PaymentMethod.Agent)) {
+                JsfUtil.addErrorMessage("This Reference Number is alredy Used.");
+                setReferralId("");
+                return true;
+            }
+            if (!agentReferenceBookController.numberHasBeenIssuedToTheAgent(collectingCentre, getReferralId())) {
+                JsfUtil.addErrorMessage("This Reference Number is Blocked Or This channel Book is Not Issued.");
+                return true;
+            }
         }
 
         return false;
@@ -1264,25 +1261,31 @@ public class CollectingCentreBillController implements Serializable, ControllerW
             return;
         }
 
-        getCurrentBillItem().setSessionDate(sessionDate);
 //        New Session
         //   getCurrentBillItem().setBillSession(getServiceSessionBean().createBillSession(getCurrentBillItem()));
 //        New Session
         //   getCurrentBillItem().setBillSession(getServiceSessionBean().createBillSession(getCurrentBillItem()));
-        lastBillItem = getCurrentBillItem();
+        BillItem bi = new BillItem();
+        bi.copy(getCurrentBillItem());
+        bi.setSessionDate(sessionDate);
+        lastBillItem = bi;
+        if (bi.getQty() == null || bi.getQty() < 1) {
+            bi.setQty(1.0);
+        }
         BillEntry addingEntry = new BillEntry();
-        addingEntry.setBillItem(getCurrentBillItem());
-        addingEntry.setLstBillComponents(getBillBean().billComponentsFromBillItem(getCurrentBillItem()));
-        addingEntry.setLstBillFees(getBillBean().billFeefromBillItem(getCurrentBillItem()));
-        addingEntry.setLstBillSessions(getBillBean().billSessionsfromBillItem(getCurrentBillItem()));
+        addingEntry.setBillItem(bi);
+        addingEntry.setLstBillComponents(getBillBean().billComponentsFromBillItem(bi));
+        addingEntry.setLstBillFees(getBillBean().billFeefromBillItem(bi, collectingCentre, collectingCentre.getFeeListType()));
+        addingEntry.setLstBillSessions(getBillBean().billSessionsfromBillItem(bi));
         getLstBillEntries().add(addingEntry);
-        getCurrentBillItem().setRate(getBillBean().billItemRate(addingEntry));
-        getCurrentBillItem().setQty(1.0);
-        getCurrentBillItem().setNetValue(getCurrentBillItem().getRate() * getCurrentBillItem().getQty()); // Price == Rate as Qty is 1 here
+        bi.setRate(getBillBean().billItemRate(addingEntry));
+        bi.setQty(1.0);
+
+        bi.setNetValue(bi.getRate() * bi.getQty()); // Price == Rate as Qty is 1 here
         calTotals();
 
-        if (getCurrentBillItem().getNetValue() == 0.0) {
-            JsfUtil.addErrorMessage("Please enter the fess");
+        if (bi.getNetValue() == 0.0) {
+            JsfUtil.addErrorMessage("Please enter the Fees");
             return;
         }
         clearBillItemValues();
@@ -1524,6 +1527,14 @@ public class CollectingCentreBillController implements Serializable, ControllerW
 
     public String navigateToCollectingCenterBillingromCollectingCenterBilling() {
         prepareNewBillKeepingCollectingCenter();
+        fillAvailableAgentReferanceNumbers(collectingCentre);
+        setPatient(getPatient());
+        return "/collecting_centre/bill?faces-redirect=true";
+    }
+
+    public String navigateToCollectingCenterBillingfromBillPriview() {
+        prepareNewBillKeepingCollectingCenter();
+        fillAvailableAgentReferanceNumbers(collectingCentre);
         setPatient(getPatient());
         return "/collecting_centre/bill?faces-redirect=true";
     }
@@ -1561,7 +1572,7 @@ public class CollectingCentreBillController implements Serializable, ControllerW
 
         for (BillEntry be : billEntrys) {
 
-            if ((reminingCashPaid != 0.0) || !getSessionController().getLoggedPreference().isPartialPaymentOfOpdPreBillsAllowed()) {
+            if ((reminingCashPaid != 0.0) || !getSessionController().getApplicationPreference().isPartialPaymentOfOpdPreBillsAllowed()) {
 
                 calculateBillfeePayments(be.getLstBillFees(), p);
 
@@ -1574,7 +1585,7 @@ public class CollectingCentreBillController implements Serializable, ControllerW
     public void calculateBillfeePayments(List<BillFee> billFees, Payment p) {
         for (BillFee bf : billFees) {
 
-            if (getSessionController().getLoggedPreference().isPartialPaymentOfOpdPreBillsAllowed() || getSessionController().getLoggedPreference().isPartialPaymentOfOpdBillsAllowed()) {
+            if (getSessionController().getApplicationPreference().isPartialPaymentOfOpdPreBillsAllowed() || getSessionController().getApplicationPreference().isPartialPaymentOfOpdBillsAllowed()) {
                 if (Math.abs((bf.getFeeValue() - bf.getSettleValue())) > 0.1) {
                     if (reminingCashPaid >= (bf.getFeeValue() - bf.getSettleValue())) {
                         //// // System.out.println("In If reminingCashPaid = " + reminingCashPaid);

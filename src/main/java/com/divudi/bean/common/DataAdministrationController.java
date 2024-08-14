@@ -52,6 +52,7 @@ import com.divudi.facade.PharmaceuticalItemCategoryFacade;
 import com.divudi.facade.ServiceSessionFacade;
 import com.divudi.facade.StaffFacade;
 import com.divudi.bean.common.util.JsfUtil;
+import java.sql.SQLSyntaxErrorException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,11 +63,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
+import javax.faces.context.FacesContext;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.persistence.Entity;
+import javax.persistence.PersistenceException;
 import javax.persistence.TemporalType;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.reflections.Reflections;
 
 /**
  *
@@ -165,6 +177,9 @@ public class DataAdministrationController {
     private SearchKeyword searchKeyword;
     CommonController commonController;
     private int manageCheckEnteredDataIndex;
+    private String errors;
+    private String suggestedSql;
+    private String executionFeedback;
 
     Date fromDate;
     Date toDate;
@@ -255,6 +270,103 @@ public class DataAdministrationController {
 
         }
 
+    }
+
+    public String navigateToCheckMissingFields() {
+        return "/dataAdmin/missing_database_fields";
+    }
+
+    public void checkMissingFields1() {
+        suggestedSql = "";
+        errors = "";
+        StringBuilder allErrors = new StringBuilder();
+
+        for (Class<?> entityClass : findEntityClassNames()) {
+            String entityName = entityClass.getSimpleName();
+            try {
+                itemFacade.executeQueryFirstResult(entityClass, "SELECT e FROM " + entityName + " e");
+            } catch (PersistenceException pe) {
+                Throwable cause = pe.getCause();
+                while (cause != null && !(cause instanceof SQLSyntaxErrorException)) {
+                    cause = cause.getCause();
+                }
+                if (cause != null) {
+                    Matcher matcher = Pattern.compile("Unknown column '([^']+)' in 'field list'").matcher(cause.getMessage());
+                    if (matcher.find()) {
+                        String missingColumn = matcher.group(1);
+                        errors += String.format("Entity: %s, Missing Column: %s\n", entityName, missingColumn);
+                    }
+                }
+            } catch (Exception e) {
+                // Handle other exceptions as needed
+            }
+        }
+    }
+
+    public void checkMissingFields() {
+        suggestedSql = "";
+        List<EntityFieldError> entityFieldErrors = new ArrayList<>();
+
+        for (Class<?> entityClass : findEntityClassNames()) {
+            String entityName = entityClass.getSimpleName();
+            EntityFieldError entityFieldError = new EntityFieldError(entityName);
+            String jpql = "SELECT e FROM " + entityName + " e";
+            try {
+                itemFacade.executeQueryFirstResult(entityClass, jpql);
+            } catch (Exception e) {
+                Throwable cause = e.getCause();
+                while (cause != null && !(cause instanceof SQLSyntaxErrorException)) {
+                    cause = cause.getCause();
+                }
+                if (cause != null) {
+                    String message = cause.getMessage();
+                    Pattern pattern = Pattern.compile("Unknown column '([^']+)' in 'field list'");
+                    Matcher matcher = pattern.matcher(message);
+                    while (matcher.find()) {
+                        String missingColumn = matcher.group(1);
+                        entityFieldError.addMissingField(missingColumn);
+                    }
+                    if (!entityFieldError.missingFields.isEmpty()) {
+                        entityFieldErrors.add(entityFieldError);
+                    }
+                }
+            }
+        }
+
+        // Convert the list of EntityFieldError objects to a string
+        StringBuilder errorsBuilder = new StringBuilder();
+        for (EntityFieldError error : entityFieldErrors) {
+            errorsBuilder.append(error.toString()).append("\n");
+        }
+
+        errors = errorsBuilder.toString();
+    }
+
+    public List<Class<?>> findEntityClassNames() {
+        List<Class<?>> lst = new ArrayList<>();
+        Reflections reflections = new Reflections("com.divudi.entity");
+        Set<Class<?>> annotated = reflections.getTypesAnnotatedWith(Entity.class);
+        lst.addAll(annotated);
+        return lst;
+    }
+
+    public void runSqlToCreateFields() {
+        String[] sqlStatements = suggestedSql.split("<br/>");
+        StringBuilder executionResults = new StringBuilder();
+        for (String sql : sqlStatements) {
+            if (sql.trim().isEmpty()) {
+                continue; // Skip empty lines
+            }
+            int result = itemFacade.executeNativeSql(sql);
+            if (result >= 0) {
+                // Assuming a positive result indicates success. Adjust based on your logic.
+                executionResults.append("<br/>Successfully executed: ").append(sql);
+            } else {
+                // Handle failure case here. Adjust based on your logic.
+                executionResults.append("<br/>Failed to execute: ").append(sql);
+            }
+        }
+        executionFeedback = executionResults.toString();
     }
 
     public void addBillFeesToProfessionalCancelBills() {
@@ -904,38 +1016,31 @@ public class DataAdministrationController {
     }
 
     public void createCodeSelectedCategory() {
-        if (itemCategory == null) {
-            JsfUtil.addErrorMessage("Please Select Category");
-            return;
-        }
-        if (itemCategory.getDescription().equals("") || itemCategory.getDescription() == null) {
-            JsfUtil.addErrorMessage("Please Check Category Code");
-            return;
-        }
         Map m = new HashMap();
         String sql = "select c from Amp c "
                 + " where c.retired=false"
-                + " and c.category=:cat "
                 + " and (c.departmentType is null "
-                + " or c.departmentType=:dep) "
-                + " order by c.name";
+                + " or c.departmentType=:dep) ";
 
         m.put("dep", DepartmentType.Pharmacy);
-        m.put("cat", itemCategory);
+        if (itemCategory != null) {
+            sql += " and c.category=:cat ";
+            m.put("cat", itemCategory);
+        }
+        sql += " order by c.name";
 
         items = itemFacade.findByJpql(sql, m);
 
-
         int j = 1;
 
-        for (Item i : items) {
-            DecimalFormat df = new DecimalFormat("0000");
-//            df=new DecimalFormat("####");
-//            //System.out.println("df = " + df.format(j));
-            i.setCode(itemCategory.getDescription() + df.format(j));
-            itemFacade.edit(i);
-            j++;
-        }
+//        for (Item i : items) {
+//            DecimalFormat df = new DecimalFormat("0000");
+////            df=new DecimalFormat("####");
+////            //System.out.println("df = " + df.format(j));
+//            i.setCode(itemCategory.getDescription() + df.format(j));
+//            itemFacade.edit(i);
+//            j++;
+//        }
 
     }
 
@@ -953,7 +1058,6 @@ public class DataAdministrationController {
 //        m.put("cat", itemCategory);
 
         items = itemFacade.findByJpql(sql, m);
-
 
         int j = 1;
 
@@ -985,7 +1089,6 @@ public class DataAdministrationController {
 
         items = itemFacade.findByJpql(sql, m);
 
-
         int j = 1;
 
         for (Item i : items) {
@@ -1011,7 +1114,6 @@ public class DataAdministrationController {
 //        m.put("cat", itemCategory);
 
         items = itemFacade.findByJpql(sql, m);
-
 
         for (Item i : items) {
 //            //System.out.println("i.getName() = " + i.getName());
@@ -1120,6 +1222,60 @@ public class DataAdministrationController {
         }
         fillPharmacyCategory();
     }
+    
+    public void downloadAsExcel() {
+        getItems();
+        try {
+            // Create a new Excel workbook
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("Doctor Data");
+
+            // Create a header row
+            Row headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("Category");
+            headerRow.createCell(1).setCellValue("Name");
+            headerRow.createCell(2).setCellValue("Code");
+            headerRow.createCell(3).setCellValue("Barcode");
+            headerRow.createCell(4).setCellValue("VMP");
+
+            // Add more columns as needed
+            // Populate the data rows
+            int rowNum = 1;
+            for (Item i : items) {
+                Row row = sheet.createRow(rowNum++);
+                if(i.getCategory().getName() != null ||!i.getCategory().getName().trim().equals("")){
+                    row.createCell(0).setCellValue(i.getCategory().getName());
+                }
+                if(i.getName() != null ||!i.getName().trim().equals("")){
+                    row.createCell(1).setCellValue(i.getName());
+                }
+                if(!i.getCode().trim().equals("")){
+                    row.createCell(2).setCellValue(i.getCode());
+                }
+                if(!i.getBarcode().trim().equals("")){
+                    row.createCell(3).setCellValue(i.getBarcode());
+                }
+                if(i.getVmp() != null){
+                    row.createCell(4).setCellValue(i.getVmp().getName());
+                }
+                
+            }
+
+            // Set the response headers to initiate the download
+            FacesContext context = FacesContext.getCurrentInstance();
+            HttpServletResponse response = (HttpServletResponse) context.getExternalContext().getResponse();
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=\"amp_data.xlsx\"");
+
+            // Write the workbook to the response output stream
+            workbook.write(response.getOutputStream());
+            workbook.close();
+            context.responseComplete();
+        } catch (Exception e) {
+            // Handle any exceptions
+            e.printStackTrace();
+        }
+    }
 
     private List<PharmaceuticalItemCategory> fetchPharmacyCategories(boolean active) {
 //        items = getFacade().findAll("name", true);
@@ -1133,7 +1289,7 @@ public class DataAdministrationController {
 
         return getPharmaceuticalItemCategoryFacade().findByJpql(sql);
     }
-    
+
 //    Getters & Setters
     public PatientReportItemValueFacade getPatientReportItemValueFacade() {
         return patientReportItemValueFacade;
@@ -1505,9 +1661,69 @@ public class DataAdministrationController {
     public void setManageCheckEnteredDataIndex(int manageCheckEnteredDataIndex) {
         this.manageCheckEnteredDataIndex = manageCheckEnteredDataIndex;
     }
-    
-    public String navigateToAdminDataAdministration(){
-        return "/dataAdmin/admin_data_administration";
+
+    public String navigateToAdminDataAdministration() {
+        return "/dataAdmin/admin_data_administration?faces-redirect=true";
+    }
+
+    public String getErrors() {
+        return errors;
+    }
+
+    public void setErrors(String errors) {
+        this.errors = errors;
+    }
+
+    public String getSuggestedSql() {
+        return suggestedSql;
+    }
+
+    public void setSuggestedSql(String suggestedSql) {
+        this.suggestedSql = suggestedSql;
+    }
+
+    public String getExecutionFeedback() {
+        return executionFeedback;
+    }
+
+    public void setExecutionFeedback(String executionFeedback) {
+        this.executionFeedback = executionFeedback;
+    }
+
+    public class EntityFieldError {
+
+        private String entityName;
+        private Set<String> missingFields = new HashSet<>();
+
+        public EntityFieldError(String entityName) {
+            this.entityName = entityName;
+        }
+
+        public void addMissingField(String fieldName) {
+            missingFields.add(fieldName);
+        }
+
+        @Override
+        public String toString() {
+            return "Entity: " + entityName + ", Missing Fields: " + String.join(", ", missingFields);
+        }
+
+        public String getEntityName() {
+            return entityName;
+        }
+
+        public void setEntityName(String entityName) {
+            this.entityName = entityName;
+        }
+
+        public Set<String> getMissingFields() {
+            return missingFields;
+        }
+
+        public void setMissingFields(Set<String> missingFields) {
+            this.missingFields = missingFields;
+        }
+
     }
 
 }

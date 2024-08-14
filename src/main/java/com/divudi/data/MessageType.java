@@ -6,18 +6,28 @@
 package com.divudi.data;
 
 /**
- *
  * @author ruhunu
  */
 public enum MessageType {
+
     LabReport,
     OpdBillSettle,
-    ChannelDoctorAraival,
     Marketing,
     BillCancellationInformationMail,
     BillReturnInfromationMail,
     ChannelBooking,
-    ChannelCustom,
-    ChannelReminder,
+    ChannelDoctorArrival,
     ChannelCancellation,
+    ChannelCompletion,
+    ChannelNoShow,
+    ChannelDoctorPayment,
+    ChannelCustom,
+    ChannelPatientFeedback,
+    ChannelPatientReschedule,
+    ChannelReminder,
+    ChannelBookingCancellation,
+    ChannelTimeDateChange,
+    ChannelDoctorReminder,
+    ChannelStatusUpdate,
+    DoctorPayment
 }

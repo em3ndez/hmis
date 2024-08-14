@@ -48,8 +48,29 @@ public class CreditCompanyController implements Serializable {
 
     private List<Institution> items = null;
     List<Institution> institutions;
+    private List<Institution> creditCompany;
     String selectText = "";
 
+    public Institution findCreditCompanyByName(String name) {
+        if (name == null) {
+            return null;
+        }
+        if (name.trim().equals("")) {
+            return null;
+        }
+        String jpql = "select c "
+                + " from Institution c "
+                + " where c.retired=:ret "
+                + " and c.institutionType=:t "
+                + " and c.name=:n";
+        Map m = new HashMap<>();
+        m.put("ret", false);
+        m.put("t", InstitutionType.CreditCompany);
+        m.put("n", name);
+        return getFacade().findFirstByJpql(jpql, m);
+    }
+    
+    
     public List<Institution> completeCredit(String query) {
         List<Institution> suggestions;
         String sql;
@@ -129,6 +150,21 @@ public class CreditCompanyController implements Serializable {
         recreateModel();
         getItems();
     }
+    
+    public void save(Institution cc) {
+        if (cc == null) {
+            return;
+        }
+        if (cc.getId() != null) {
+            getFacade().edit(cc);
+            JsfUtil.addSuccessMessage("Updated Successfully.");
+        } else {
+            cc.setCreatedAt(new Date());
+            cc.setCreater(getSessionController().getLoggedUser());
+            getFacade().create(cc);
+            JsfUtil.addSuccessMessage("Saved Successfully");
+        }
+    }
 
     public void fillCreditCompany() {
         Date startTime = new Date();
@@ -139,7 +175,7 @@ public class CreditCompanyController implements Serializable {
                 + "where i.retired=false ";
         institutions = getEjbFacade().findByJpql(sql);
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Reports/Check Entered Data/Credit Company/credit card companies(/faces/dataAdmin/credit_companies.xhtml)");
+        
     }
 
     public void fillInstitutions() {
@@ -237,6 +273,24 @@ public class CreditCompanyController implements Serializable {
 
     public void setInstitutionType(InstitutionType institutionType) {
         this.institutionType = institutionType;
+    }
+
+    public List<Institution> getCreditCompany() {
+        if (creditCompany == null) {
+            String sql = "select p from Institution p where p.retired=false and "
+                   + "p.institutionType = :institutionType "
+                   + "order by p.name";
+
+            Map<String, Object> m = new HashMap<>();
+            m.put("institutionType", InstitutionType.CreditCompany);
+
+            creditCompany = getFacade().findByJpql(sql, m);
+        }
+    return creditCompany;
+    }
+
+    public void setCreditCompany(List<Institution> creditCompany) {
+        this.creditCompany = creditCompany;
     }
 
     /**

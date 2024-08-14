@@ -32,7 +32,6 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Temporal;
 import javax.persistence.Transient;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -61,6 +60,8 @@ public class PatientEncounter implements Serializable {
     Patient patient;
     @ManyToOne
     Person guardian;
+    @ManyToOne
+    private Item guardianRelationshipToPatient;
     @ManyToOne
     private PatientRoom currentPatientRoom;
     @ManyToOne
@@ -1019,5 +1020,15 @@ public class PatientEncounter implements Serializable {
     public void setSaturation(Double saturation) {
         this.saturation = saturation;
     }
+
+    public Item getGuardianRelationshipToPatient() {
+        return guardianRelationshipToPatient;
+    }
+
+    public void setGuardianRelationshipToPatient(Item guardianRelationshipToPatient) {
+        this.guardianRelationshipToPatient = guardianRelationshipToPatient;
+    }
+    
+    
 
 }

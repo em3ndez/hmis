@@ -12,7 +12,7 @@
     <h:body>
         <ui:composition template="/resources/template/template.xhtml">
             <ui:define name="content">
-                <h:panelGroup rendered="#{webUserController.hasPrivilege('LabBillReturning')}" >
+                <h:panelGroup rendered="#{webUserController.hasPrivilege('LabBillReturning')||webUserController.hasPrivilege('OpdReturn')}" >
 
                     <h:form>
                         <h:panelGroup rendered="#{!billSearch.printPreview}" styleClass="alignTop" >
@@ -20,8 +20,22 @@
                                 <f:facet name="header">
                                     <h:outputText value="Refund"/>
                                     <h:panelGrid columns="3" style="float: right" class="w-50">
-                                        <p:inputText placeholder="Enter Comments to Refund Bill" value="#{billSearch.comment}" style="float: right" class="p-2 w-100"/> 
-
+                                        <p:selectOneMenu 
+                                            id="commentsMenu" 
+                                            value="#{billSearch.comment}" 
+                                            editable="true" 
+                                            filter="true" 
+                                            placeholder="Select or enter a comment"
+                                            filterMatchMode="contains"  
+                                            style="float: right; width: 100%" 
+                                            class="p-2">
+                                            <f:selectItem itemLabel="Select or enter a comment" itemValue="" noSelectionOption="true"/>
+                                            <f:selectItems 
+                                                value="#{configOptionApplicationController.getListOfCustomOptions('OPD Bill Refunding Comments')}" 
+                                                var="option" 
+                                                itemLabel="#{option}" 
+                                                itemValue="#{option}"/>
+                                        </p:selectOneMenu>
                                         <p:commandButton 
                                             ajax="false"
                                             value="Refund Bill" 
@@ -30,10 +44,17 @@
                                             class="ui-button-warning" action="#{billSearch.refundOpdBill()}"
                                             onclick="if (!confirm('Are you sure you want to Refund This Bill ?'))
                                                         return false;" >
-                                        </p:commandButton>  
+                                        </p:commandButton> 
+                                        <p:commandButton  
+                                            class="ui-button-secondary mx-2"
+                                            style="float: right"
+                                            value="Back To Search"
+                                            icon="fa-solid fa-arrow-left"
+                                            action="/opd/opd_bill_search"
+                                            ajax="false">
+                                        </p:commandButton>
                                     </h:panelGrid>
                                 </f:facet>
-
 
                                 <p:panel>
                                     <f:facet name="header">
@@ -43,7 +64,7 @@
                                     <p:selectOneMenu   id="cmbPs" value="#{billSearch.paymentMethod}"  
                                                        rendered="#{billSearch.bill.billType eq 'OpdBill'}">
                                         <f:selectItem itemLabel="Select paymentMethod"/>
-                                        <f:selectItems value="#{enumController.paymentMethods}"/>
+                                        <f:selectItems value="#{enumController.paymentMethodsForOpdBilling}"/>
                                     </p:selectOneMenu>
 
                                     <p:selectOneMenu   id="cmbPs2" value="#{billSearch.paymentMethod}"  
@@ -80,10 +101,10 @@
                                                 <h:outputLabel value="#{billSearch.bill.discount}" ></h:outputLabel>
                                                 <h:outputLabel value="Net Total :" ></h:outputLabel>
                                                 <h:outputLabel value="#{billSearch.bill.netTotal}" ></h:outputLabel>
-<!--                                                <h:outputLabel style="font-weight: bold;" value="Total Refund" >
-                                                </h:outputLabel>
-                                                <h:outputLabel id="txtTotal" style="font-weight: bold;" value="#{billSearch.refundAmount}" >
-                                                </h:outputLabel>-->
+                                                <!--                                                <h:outputLabel style="font-weight: bold;" value="Total Refund" >
+                                                                                                </h:outputLabel>
+                                                                                                <h:outputLabel id="txtTotal" style="font-weight: bold;" value="#{billSearch.refundAmount}" >
+                                                                                                </h:outputLabel>-->
                                             </p:panelGrid>
                                         </p:panel>
                                         <p:panel id="panelRefundBillDetails">
@@ -104,9 +125,6 @@
                                         <h:outputText styleClass="fas fa-list-alt"></h:outputText>
                                         <h:outputLabel value="Bill Item Details" class="mx-2"></h:outputLabel>
                                     </f:facet>
-
-
-
 
                                     <table class="table table-primary">
                                         <tr>
@@ -162,7 +180,7 @@
                                              rowKey="#{b.id}" selection="#{billSearch.refundingItems}"  >
 
 
-                                   
+
                                     <p:column id="colSelect"   selectionMode="multiple"    >
                                     </p:column>
 
@@ -201,14 +219,24 @@
                             <f:facet name="header">
 
                                 <div class="d-flex justify-content-between">
-                                    <h:outputLabel  value="Bill Preview" class="mt-2"/>
-                                    <p:commandButton 
-                                        class="ui-button-info d-flex justify-content-end"
-                                        value="Print" 
-                                        icon="fa fa-print"
-                                        ajax="false" action="#"  >
-                                        <p:printer target="printPreview" ></p:printer>
-                                    </p:commandButton>
+                                    <h:outputLabel  value="Bill Preview" class="mt-2 "/>
+                                    <div class="d-flex ">
+                                        <p:commandButton 
+                                            class="ui-button-info d-flex justify-content-end"
+                                            value="Print" 
+                                            icon="fa fa-print"
+                                            ajax="false" action="#"  >
+                                            <p:printer target="printPreview" ></p:printer>
+                                        </p:commandButton>
+                                        <p:commandButton  
+                                            class="ui-button-secondary d-flex justify-content-end mx-2"
+                                            style="float: right"
+                                            value="Back To Search"
+                                            icon="fa-solid fa-arrow-left"
+                                            action="/opd/opd_bill_search"
+                                            ajax="false">
+                                        </p:commandButton>
+                                    </div>
                                 </div>
 
                             </f:facet>
@@ -223,13 +251,13 @@
 
                             <h:panelGroup id="printPreview">
                                 <h:panelGroup rendered="#{sessionController.loggedPreference.opdBillPaperType eq 'PosPaper'}">
-                                    <bi:opdPOSReturnBill bill="#{billSearch.bill}"/>
+                                    <bi:opdPOSReturnBill bill="#{billSearch.currentRefundBill}"/>
                                 </h:panelGroup>
 
 
                                 <h:panelGroup rendered="#{sessionController.departmentPreference.opdBillPaperType eq 'FiveFivePrintedPaper'}" >
                                     <bi:opdReturnfive_five_paper_without_headings 
-                                        bill="#{billSearch.bill}" 
+                                        bill="#{billSearch.currentRefundBill}" 
                                         payments="#{opdBillController.payments}"/>
 
                                 </h:panelGroup>

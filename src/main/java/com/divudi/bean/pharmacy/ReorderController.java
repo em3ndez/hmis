@@ -33,7 +33,6 @@ import com.divudi.facade.ReorderFacade;
 import com.divudi.bean.common.util.JsfUtil;
 import com.divudi.entity.pharmacy.Amp;
 import com.divudi.java.CommonFunctions;
-import com.google.common.collect.HashBiMap;
 import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -55,8 +54,6 @@ import javax.persistence.TemporalType;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.primefaces.event.RowEditEvent;
-import org.primefaces.model.chart.CartesianChartModel;
-import org.primefaces.model.chart.LineChartSeries;
 
 @Named
 @SessionScoped
@@ -118,10 +115,17 @@ public class ReorderController implements Serializable {
     Item item;
     Department historyDept;
 
-    private CartesianChartModel dateModel;
+//    private CartesianChartModel dateModel;
 
     public String navigateReorderManagement() {
         return "/pharmacy/reorder_management?faces-redirect=true";
+    }
+
+    public void updateReorder(Reorder ro) {
+        if (ro == null) {
+            return;
+        }
+        save(ro);
     }
 
     public List<Reorder> fillReordersBySelectedDepartment() {
@@ -130,7 +134,6 @@ public class ReorderController implements Serializable {
         String sql = "select r from Reorder r where r.department=:dep";
         m.put("dep", department);
         reorders = reorderFacade.findByJpql(sql, m);
-        System.out.println("reorders dep = " + reorders.size());
         return reorders;
 
     }
@@ -141,7 +144,6 @@ public class ReorderController implements Serializable {
         String sql = "select r from Reorder r where r.institution=:ins";
         m.put("ins", institution);
         reorders = reorderFacade.findByJpql(sql, m);
-        System.out.println("reorders ins = " + reorders.size());
         return reorders;
     }
 
@@ -168,12 +170,12 @@ public class ReorderController implements Serializable {
             return true;
         }
     }
-    
-    public void removeReOrder(Reorder ro){
+
+    public void removeReOrder(Reorder ro) {
         if (ro != null) {
-            reorders.remove(ro);
+            reorderFacade.remove(ro);
         }
-   
+
     }
 
     public void createReOrdersByDepartment() {
@@ -188,10 +190,9 @@ public class ReorderController implements Serializable {
             }
         }
     }
-    
+
     public void createReOrdersByInstituion() {
         List<Amp> amps = getAmpController().findItems();
-        System.out.println("amps by ins = " + amps.size());
         for (Amp amp : amps) {
             if (isAmpHaveReorder(amp, null, institution) == false) {
                 Reorder ro = new Reorder();
@@ -202,9 +203,9 @@ public class ReorderController implements Serializable {
         }
     }
 
-    public CartesianChartModel getDateModel() {
-        return dateModel;
-    }
+//    public CartesianChartModel getDateModel() {
+//        return dateModel;
+//    }
 
     public void createDailyItemSummery() {
         createDailyItemSummery(item, historyDept, fromDate, toDate);
@@ -217,64 +218,64 @@ public class ReorderController implements Serializable {
     }
 
     public void createDailyItemSummery(Item item, Department dept, Date fromDate, Date toDate) {
-        dateModel = new CartesianChartModel();
-        List<ItemTransactionSummeryRow> rows;
-
-        LineChartSeries series1 = new LineChartSeries();
-        series1.setLabel("Stock Average");
-        rows = findDailyStockAverage(item, dept, fromDate, toDate);
-        for (ItemTransactionSummeryRow r : rows) {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-            series1.set(df.format(r.getDate()), r.getQuantity());
-        }
-        dateModel.addSeries(series1);
-
-        LineChartSeries series2 = new LineChartSeries();
-        series2.setLabel("Sales");
-        rows = findDailySale(item, dept, fromDate, toDate);
-        for (ItemTransactionSummeryRow r : rows) {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-            series2.set(df.format(r.getDate()), r.getQuantity());
-        }
-        dateModel.addSeries(series2);
-
-        LineChartSeries series3 = new LineChartSeries();
-        series3.setLabel("Purchase/Good Receive");
-        rows = findDailyPurchase(item, dept, fromDate, toDate);
-        for (ItemTransactionSummeryRow r : rows) {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-            series3.set(df.format(r.getDate()), r.getQuantity());
-        }
-        dateModel.addSeries(series3);
-
-        LineChartSeries series4 = new LineChartSeries();
-        series4.setLabel("Transfer Issue");
-        rows = findDailyTransferOut(item, dept, fromDate, toDate);
-        for (ItemTransactionSummeryRow r : rows) {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-            series4.set(df.format(r.getDate()), r.getQuantity());
-        }
-        dateModel.addSeries(series4);
-
-        LineChartSeries series5 = new LineChartSeries();
-        series5.setLabel("Transfer Receive");
-        rows = findDailyTransferIn(item, dept, fromDate, toDate);
-        for (ItemTransactionSummeryRow r : rows) {
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-            series5.set(df.format(r.getDate()), r.getQuantity());
-        }
-        dateModel.addSeries(series5);
-
-//        dateModel.setTitle("Item Transactions");
-//        dateModel.setZoom(true);
-//        dateModel.setLegendPlacement(LegendPlacement.INSIDE);
-//        dateModel.setLegendPosition("ne");
-//        dateModel.getAxis(AxisType.Y).setLabel("Stock");
-//        DateAxis axis = new DateAxis("Dates");
-//        axis.setTickAngle(-50);
-////        axis.setMax("2014-02-01");
-//        axis.setTickFormat("%b %#d, %y");
-//        dateModel.getAxes().put(AxisType.X, axis);
+//        dateModel = new CartesianChartModel();
+//        List<ItemTransactionSummeryRow> rows;
+//
+//        LineChartSeries series1 = new LineChartSeries();
+//        series1.setLabel("Stock Average");
+//        rows = findDailyStockAverage(item, dept, fromDate, toDate);
+//        for (ItemTransactionSummeryRow r : rows) {
+//            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+//            series1.set(df.format(r.getDate()), r.getQuantity());
+//        }
+//        dateModel.addSeries(series1);
+//
+//        LineChartSeries series2 = new LineChartSeries();
+//        series2.setLabel("Sales");
+//        rows = findDailySale(item, dept, fromDate, toDate);
+//        for (ItemTransactionSummeryRow r : rows) {
+//            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+//            series2.set(df.format(r.getDate()), r.getQuantity());
+//        }
+//        dateModel.addSeries(series2);
+//
+//        LineChartSeries series3 = new LineChartSeries();
+//        series3.setLabel("Purchase/Good Receive");
+//        rows = findDailyPurchase(item, dept, fromDate, toDate);
+//        for (ItemTransactionSummeryRow r : rows) {
+//            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+//            series3.set(df.format(r.getDate()), r.getQuantity());
+//        }
+//        dateModel.addSeries(series3);
+//
+//        LineChartSeries series4 = new LineChartSeries();
+//        series4.setLabel("Transfer Issue");
+//        rows = findDailyTransferOut(item, dept, fromDate, toDate);
+//        for (ItemTransactionSummeryRow r : rows) {
+//            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+//            series4.set(df.format(r.getDate()), r.getQuantity());
+//        }
+//        dateModel.addSeries(series4);
+//
+//        LineChartSeries series5 = new LineChartSeries();
+//        series5.setLabel("Transfer Receive");
+//        rows = findDailyTransferIn(item, dept, fromDate, toDate);
+//        for (ItemTransactionSummeryRow r : rows) {
+//            DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+//            series5.set(df.format(r.getDate()), r.getQuantity());
+//        }
+//        dateModel.addSeries(series5);
+//
+////        dateModel.setTitle("Item Transactions");
+////        dateModel.setZoom(true);
+////        dateModel.setLegendPlacement(LegendPlacement.INSIDE);
+////        dateModel.setLegendPosition("ne");
+////        dateModel.getAxis(AxisType.Y).setLabel("Stock");
+////        DateAxis axis = new DateAxis("Dates");
+////        axis.setTickAngle(-50);
+//////        axis.setMax("2014-02-01");
+////        axis.setTickFormat("%b %#d, %y");
+////        dateModel.getAxes().put(AxisType.X, axis);
     }
 
     public DepartmentListMethod getDepartmentListMethod() {
@@ -513,7 +514,7 @@ public class ReorderController implements Serializable {
 
         generateReorders(false);
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Pharmacy/Purchase/By distributor(Fill All Items)(/faces/pharmacy/auto_ordering_by_distributor.xhtml)");
+        
 
     }
 
@@ -522,7 +523,7 @@ public class ReorderController implements Serializable {
 
         generateReorders(false, true);
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Pharmacy/Purchase/By distributor(Fill Required Items)(/faces/pharmacy/auto_ordering_by_distributor.xhtml)");
+        
     }
 
     public List<Reorder> getReorders() {
@@ -595,7 +596,7 @@ public class ReorderController implements Serializable {
 
         generateReorders(true, false, departmentListMethod);
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Pharmacy/Purchase/By distributor(generate records)(/faces/pharmacy/auto_ordering_by_distributor.xhtml)");
+        
 
     }
 
@@ -678,6 +679,17 @@ public class ReorderController implements Serializable {
         List<Department> deps = new ArrayList<>(ds.values());
 
         return deps;
+    }
+
+    private void save(Reorder ro) {
+        if (ro == null) {
+            return;
+        }
+        if(ro.getId()==null) {
+            reorderFacade.create(ro);
+        }else{
+            reorderFacade.edit(ro);
+        }
     }
 
     enum AutoOrderMethod {
@@ -876,7 +888,7 @@ public class ReorderController implements Serializable {
         }
         JsfUtil.addSuccessMessage("Saved.");
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Pharmacy/Reports/Reports for ordering/Reorder analysis(/faces/pharmacy/ordering_data.xhtml)");
+        
 
     }
 

@@ -9,6 +9,7 @@ import com.divudi.bean.common.util.JsfUtil;
 import com.divudi.data.BillClassType;
 import com.divudi.data.BillNumberSuffix;
 import com.divudi.data.BillType;
+import com.divudi.data.BillTypeAtomic;
 import com.divudi.ejb.BillNumberGenerator;
 import com.divudi.ejb.PharmacyBean;
 import com.divudi.ejb.PharmacyCalculation;
@@ -40,6 +41,7 @@ public class PreReturnController implements Serializable {
     private Bill bill;
     private Bill returnBill;
     private boolean printPreview;
+    String comment;
     ////////
 
     private List<BillItem> billItems;
@@ -133,6 +135,7 @@ public class PreReturnController implements Serializable {
         double dbl = 0 - getReturnBill().getTotal();
 
         getReturnBill().setBillType(BillType.PharmacyPre);
+        getReturnBill().setBillTypeAtomic(BillTypeAtomic.PHARMACY_RETAIL_SALE_RETURN_ITEMS_ONLY);
         getReturnBill().setTotal(dbl);
         getReturnBill().setNetTotal(dbl);
 
@@ -204,9 +207,14 @@ public class PreReturnController implements Serializable {
             JsfUtil.addErrorMessage("Total is Zero cant' return");
             return;
         }
+        if (getReturnBill().getComments() == null || getReturnBill().getComments().trim().equals("")) {
+            JsfUtil.addErrorMessage("Please enter a comment");
+            return;
+        }
 
         saveReturnBill();
         saveComponent();
+        getBill().getReturnPreBills().add(getReturnBill());
 
         getBillFacade().edit(getReturnBill());
 
@@ -228,6 +236,17 @@ public class PreReturnController implements Serializable {
         printPreview = true;
         JsfUtil.addSuccessMessage("Successfully Returned");
 
+    }
+    
+    public void fillReturningQty(){
+        if(billItems == null || billItems.isEmpty()){
+            JsfUtil.addErrorMessage("Please add bill items");
+            return;
+        }
+        for(BillItem bi:billItems){
+            bi.setQty(bi.getPharmaceuticalBillItem().getQty());
+            onEdit(bi);
+        }
     }
 
     private void calTotal() {
@@ -369,6 +388,14 @@ public class PreReturnController implements Serializable {
 
     public void setBillItems(List<BillItem> billItems) {
         this.billItems = billItems;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
 }

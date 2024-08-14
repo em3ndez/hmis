@@ -13,9 +13,9 @@ import com.divudi.entity.Item;
 public class ItemLight {
 
     Long id;
-    int orderNo;
-    private boolean isMasterItem;
-    private boolean hasReportFormat;
+    Integer orderNo;
+    private Boolean isMasterItem;
+    private Boolean hasReportFormat;
     String categoryName;
     Long categoryId;
     Double total = 0.0;
@@ -35,8 +35,11 @@ public class ItemLight {
     String printName;
     String shortName;
     String fullName;
+    private String feeName;
+    private Double feeValue = 0.0;
+    private Double feeValueForeign = 0.0;
 
-    public ItemLight(Long id, int orderNo, boolean isMasterItem, boolean hasReportFormat,
+    public ItemLight(Long id, Integer orderNo, Boolean isMasterItem, Boolean hasReportFormat,
             String categoryName, Long categoryId, String institutionName, Long institutionId,
             String departmentName, Long departmentId, String specialityName, Long specialityId,
             String staffName, Long staffId, String name, String code, String barcode,
@@ -63,7 +66,26 @@ public class ItemLight {
         this.fullName = fullName;
     }
 
-    public ItemLight(Long id, int orderNo, boolean isMasterItem, boolean hasReportFormat,
+    public ItemLight(Long id, String departmentName, String name, String code, Double total) {
+        this.id = id;
+        this.departmentName = departmentName;
+        this.name = name;
+        this.code = code;
+        this.total = total;
+    }
+    
+    public ItemLight(Long id, String departmentName, String name, String code, Double total, Long departmentId) {
+        this.id = id;
+        this.departmentName = departmentName;
+        this.name = name;
+        this.code = code;
+        this.total = total;
+        this.departmentId = departmentId;
+    }
+
+    
+    
+    public ItemLight(Long id, Integer orderNo, Boolean isMasterItem, Boolean hasReportFormat,
             String categoryName, Long categoryId, String institutionName, Long institutionId,
             String departmentName, Long departmentId, String specialityName, Long specialityId,
             String staffName, Long staffId, String name, String code, String barcode,
@@ -101,10 +123,20 @@ public class ItemLight {
         this.code = code;
         this.total = total;
     }
+    
+    public ItemLight(Long id, String name, String code, Double total, String feeName, Double feeValue, Double feeValueForeign) {
+        this.id = id;
+        this.name = name;
+        this.code = code;
+        this.total = total;
+        this.feeName = feeName;
+        this.feeValue = feeValue;
+        this.feeValueForeign = feeValueForeign;
+    }
 
     public ItemLight(Long id, String name, String code, String barcode,
             String printName, String shortName, String fullName,
-            boolean isMasterItem, boolean hasReportFormat, Double total) {
+            Boolean isMasterItem, Boolean hasReportFormat, Double total) {
         this.id = id;
         this.name = name;
         this.code = code;
@@ -114,6 +146,20 @@ public class ItemLight {
         this.fullName = fullName;
         this.isMasterItem = isMasterItem;
         this.hasReportFormat = hasReportFormat;
+        this.total = total;
+    }
+
+    public ItemLight(Long id,
+            String name,
+            String code,
+            String fullName,
+            String departmentName,
+            Double total) {
+        this.id = id;
+        this.name = name;
+        this.code = code;
+        this.fullName = fullName;
+        this.departmentName = departmentName;
         this.total = total;
     }
 
@@ -142,7 +188,7 @@ public class ItemLight {
         // Add any other fields as needed
     }
 
-    public ItemLight(Long id, int orderNo, boolean isMasterItem, boolean hasReportFormat, String categoryName, Long categoryId, String institutionName, Long institutionId, String departmentName, Long departmentId, String specialityName, Long specialityId, String staffName, Long staffId, String dtype, String name, String code, String barcode, String printName, String shortName, String fullName) {
+    public ItemLight(Long id, Integer orderNo, Boolean isMasterItem, Boolean hasReportFormat, String categoryName, Long categoryId, String institutionName, Long institutionId, String departmentName, Long departmentId, String specialityName, Long specialityId, String staffName, Long staffId, String dtype, String name, String code, String barcode, String printingName, String shortName, String fullName) {
         this.id = id;
         this.orderNo = orderNo;
         this.isMasterItem = isMasterItem;
@@ -166,7 +212,7 @@ public class ItemLight {
         this.fullName = fullName;
     }
 
-    public ItemLight(Long id, int orderNo, boolean isMasterItem, boolean hasReportFormat,
+    public ItemLight(Long id, Integer orderNo, Boolean isMasterItem, Boolean hasReportFormat,
             Long categoryId, Long institutionId, Long departmentId, Long specialityId,
             Long staffId, Long staffPersonId, String name, String code, String barcode,
             String printName, String shortName, String fullName, Double total) {
@@ -191,8 +237,8 @@ public class ItemLight {
     }
 
     public ItemLight(Long id, String name, String code, String barcode,
-            String printName, String shortName, String fullName,
-            boolean isMasterItem, boolean hasReportFormat,
+            String printingName, String shortName, String fullName,
+            Boolean isMasterItem, Boolean hasReportFormat,
             Long categoryId, String categoryName,
             Long departmentId, String departmentName,
             Long institutionId, String institutionName,
@@ -215,7 +261,7 @@ public class ItemLight {
         this.total = total;
     }
 
-    public ItemLight(Long id, int orderNo, boolean isMasterItem, boolean hasReportFormat,
+    public ItemLight(Long id, Integer orderNo, Boolean isMasterItem, Boolean hasReportFormat,
             Long categoryId, Long institutionId, Long departmentId, Long specialityId,
             Long staffId, String name, String code, String barcode,
             String printName, String shortName, String fullName, Double total) {
@@ -241,27 +287,27 @@ public class ItemLight {
         this.id = id;
     }
 
-    public int getOrderNo() {
+    public Integer getOrderNo() {
         return orderNo;
     }
 
-    public void setOrderNo(int orderNo) {
+    public void setOrderNo(Integer orderNo) {
         this.orderNo = orderNo;
     }
 
-    public boolean isIsMasterItem() {
+    public Boolean isIsMasterItem() {
         return isMasterItem;
     }
 
-    public void setIsMasterItem(boolean isMasterItem) {
+    public void setIsMasterItem(Boolean isMasterItem) {
         this.isMasterItem = isMasterItem;
     }
 
-    public boolean isHasReportFormat() {
+    public Boolean isHasReportFormat() {
         return hasReportFormat;
     }
 
-    public void setHasReportFormat(boolean hasReportFormat) {
+    public void setHasReportFormat(Boolean hasReportFormat) {
         this.hasReportFormat = hasReportFormat;
     }
 
@@ -475,6 +521,30 @@ public class ItemLight {
     public String toString() {
         // Return a unique string representation for each ItemLight object
         return "ItemLight{" + "id=" + id + ", name=" + name + '}';
+    }
+
+    public String getFeeName() {
+        return feeName;
+    }
+
+    public void setFeeName(String feeName) {
+        this.feeName = feeName;
+    }
+
+    public Double getFeeValue() {
+        return feeValue;
+    }
+
+    public void setFeeValue(Double feeValue) {
+        this.feeValue = feeValue;
+    }
+
+    public Double getFeeValueForeign() {
+        return feeValueForeign;
+    }
+
+    public void setFeeValueForeign(Double feeValueForeign) {
+        this.feeValueForeign = feeValueForeign;
     }
 
 }

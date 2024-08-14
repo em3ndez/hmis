@@ -9,7 +9,6 @@
 package com.divudi.bean.common;
 
 import com.divudi.entity.DoctorSpeciality;
-import com.divudi.entity.Vocabulary;
 import com.divudi.facade.DoctorSpecialityFacade;
 import com.divudi.bean.common.util.JsfUtil;
 import java.io.Serializable;
@@ -93,20 +92,13 @@ public class DoctorSpecialityController implements Serializable {
     }
 
     public List<DoctorSpeciality> completeSpeciality(String qry) {
-        //   ////System.out.println("qry = " + qry);
         List<DoctorSpeciality> lst;
         lst = getFacade().findByJpql("select c from DoctorSpeciality c where c.retired=false and (c.name) like '%" + qry.toUpperCase() + "%' order by c.name");
-        //   ////System.out.println("lst = " + lst);
         return lst;
     }
 
     public List<DoctorSpeciality> getSelectedItems() {
-        if (selectText == null || selectText.trim().equals("")) {
-            selectedItems = getFacade().findByJpql("select c from DoctorSpeciality c where c.retired=false order by c.name");
-        } else {
-            selectedItems = getFacade().findByJpql("select c from DoctorSpeciality c where c.retired=false and (c.name) like '%" + getSelectText().toUpperCase() + "%' order by c.name");
-        }
-
+        selectedItems = getFacade().findByJpql("select c from DoctorSpeciality c where c.retired=false order by c.name");
         return selectedItems;
     }
 
@@ -127,6 +119,16 @@ public class DoctorSpecialityController implements Serializable {
     }
 
     public void saveSelected() {
+        
+        if(getCurrent().getName() == null || getCurrent().getName().isEmpty()){
+            JsfUtil.addErrorMessage("Name is required");
+            return;
+        }
+        
+//        if(getCurrent().getDescription()== null || getCurrent().getDescription().isEmpty() ){
+//            JsfUtil.addErrorMessage("Description is required");
+//            return;  
+//        }
 
         if (getCurrent().getId() != null && getCurrent().getId() > 0) {
             getFacade().edit(current);
@@ -244,7 +246,7 @@ public class DoctorSpecialityController implements Serializable {
         m.put("ret", false);
         m.put("name", name);
         DoctorSpeciality ds = getFacade().findFirstByJpql(j, m);
-        if(ds==null && createNewIfNotExists){
+        if (ds == null && createNewIfNotExists) {
             ds = new DoctorSpeciality();
             ds.setName(name);
             ds.setCreatedAt(new Date());
@@ -263,9 +265,6 @@ public class DoctorSpecialityController implements Serializable {
         return items;
     }
 
-    /**
-     *
-     */
     @FacesConverter(forClass = DoctorSpeciality.class)
     public static class DoctorSpecialityControllerConverter implements Converter {
 
@@ -274,21 +273,22 @@ public class DoctorSpecialityController implements Serializable {
             if (value == null || value.length() == 0) {
                 return null;
             }
-            DoctorSpecialityController controller = (DoctorSpecialityController) facesContext.getApplication().getELResolver().
-                    getValue(facesContext.getELContext(), null, "doctorSpecialityController");
-            return controller.getEjbFacade().find(getKey(value));
+            try {
+                DoctorSpecialityController controller = (DoctorSpecialityController) facesContext.getApplication().getELResolver().
+                        getValue(facesContext.getELContext(), null, "doctorSpecialityController");
+                return controller.getEjbFacade().find(getKey(value));
+            } catch (NumberFormatException e) {
+// Log the error and handle the exception
+                                return null;
+            }
         }
 
         java.lang.Long getKey(String value) {
-            java.lang.Long key;
-            key = Long.valueOf(value);
-            return key;
+            return Long.valueOf(value);
         }
 
         String getStringKey(java.lang.Long value) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(value);
-            return sb.toString();
+            return value.toString();
         }
 
         @Override
@@ -301,7 +301,7 @@ public class DoctorSpecialityController implements Serializable {
                 return getStringKey(o.getId());
             } else {
                 throw new IllegalArgumentException("object " + object + " is of type "
-                        + object.getClass().getName() + "; expected type: " + DoctorSpecialityController.class.getName());
+                        + object.getClass().getName() + "; expected type: " + DoctorSpeciality.class.getName());
             }
         }
     }

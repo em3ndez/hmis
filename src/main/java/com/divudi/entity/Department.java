@@ -15,17 +15,18 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Inheritance;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Temporal;
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  *
  * @author buddhika
  */
 @Entity
-@XmlRootElement
+@Inheritance
+
 public class Department implements Serializable {
 
     static final long serialVersionUID = 1L;
@@ -33,7 +34,6 @@ public class Department implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     //Main Properties   
     Long id;
-    @Deprecated
     String departmentCode;
     String name;
     @Lob
@@ -85,10 +85,14 @@ public class Department implements Serializable {
     @Temporal(javax.persistence.TemporalType.TIMESTAMP)
     Date retiredAt;
     String retireComments;
+    private Boolean active;
 
     double margin;
     double pharmacyMarginFromPurchaseRate;
 
+    
+    
+    
     public double getPharmacyMarginFromPurchaseRate() {
         return pharmacyMarginFromPurchaseRate;
     }
@@ -342,5 +346,13 @@ public class Department implements Serializable {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 }

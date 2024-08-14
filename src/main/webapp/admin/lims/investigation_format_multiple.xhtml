@@ -38,7 +38,7 @@
                                 </p:commandButton>
                                 <p:commandButton 
                                     value="Back" 
-                                    action="/admin/lims/investigation" ajax="false" >
+                                    action="#{investigationController.navigateToManageInvestigation}" ajax="false" >
                                 </p:commandButton>
                             </div>
                         </f:facet>
@@ -297,7 +297,7 @@
                                                                     render="gpIi :#{p:resolveFirstComponentWithId('pDetails',view).clientId} moveFocus "/>
                                                         </h:inputText>
 
-                                                        <p:watermark value="#{myIi.htmltext}" for="txtMove" ></p:watermark>
+                                                        
 
 
                                                         <h:inputHidden id="keyCode" binding="#{keyCode}" 

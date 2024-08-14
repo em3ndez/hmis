@@ -1,7 +1,9 @@
 package com.divudi.bean.lab;
 
+import com.divudi.bean.common.BillBeanController;
 import com.divudi.bean.common.BillController;
 import com.divudi.bean.common.CommonController;
+import com.divudi.bean.common.ConfigOptionApplicationController;
 import com.divudi.bean.common.ItemForItemController;
 import com.divudi.bean.common.SessionController;
 import com.divudi.bean.common.SmsController;
@@ -11,7 +13,6 @@ import com.divudi.data.InvestigationItemType;
 import com.divudi.data.InvestigationReportType;
 import com.divudi.data.ItemType;
 import com.divudi.data.MessageType;
-import com.divudi.data.SmsSentResponse;
 import com.divudi.data.lab.Dimension;
 import com.divudi.data.lab.DimensionTestResult;
 import com.divudi.data.lab.SampleRequestType;
@@ -49,7 +50,14 @@ import com.divudi.facade.PatientSampleFacade;
 import com.divudi.facade.ReportItemFacade;
 import com.divudi.facade.SmsFacade;
 import com.divudi.bean.common.util.JsfUtil;
+import com.divudi.data.lab.BillBarcode;
+import com.divudi.data.lab.PatientInvestigationWrapper;
+import com.divudi.data.lab.PatientSampleWrapper;
+import com.divudi.data.lab.SampleTubeLabel;
+import com.divudi.entity.Institution;
+import com.divudi.entity.WebUser;
 import com.divudi.java.CommonFunctions;
+import com.divudi.ws.lims.Lims;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -69,11 +77,13 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  *
- * @author Dr. M. H. B. Ariyaratne, MBBS, MSc, MD(Health Informatics)
- * Acting Consultant (Health Informatics)
+ * @author Dr. M. H. B. Ariyaratne, MBBS, MSc, MD(Health Informatics) Acting
+ * Consultant (Health Informatics)
  */
 @Named
 @SessionScoped
@@ -89,8 +99,6 @@ public class PatientInvestigationController implements Serializable {
     PatientReportFacade prFacade;
     @EJB
     InvestigationItemFacade investigationItemFacade;
-   
-    CommonFunctions commonFunctions;
     @EJB
     private InvestigationFacade investFacade;
     @EJB
@@ -119,6 +127,8 @@ public class PatientInvestigationController implements Serializable {
     @Inject
     CommonController commonController;
     @Inject
+    BillBeanController billBeanController;
+    @Inject
     private InvestigationItemController investigationItemController;
     @Inject
     private BillController billController;
@@ -128,8 +138,10 @@ public class PatientInvestigationController implements Serializable {
     private ItemForItemController itemForItemController;
     @Inject
     private SmsController smsController;
-    
-
+    @Inject
+    private Lims lims;
+    @Inject
+    ConfigOptionApplicationController configOptionApplicationController;
     /**
      * Class Variables
      */
@@ -144,8 +156,16 @@ public class PatientInvestigationController implements Serializable {
     private List<PatientInvestigation> lstToEnterData = null;
     private List<PatientReport> lstToApprove = null;
     private List<PatientReport> lstToPrint = null;
+    private List<PatientInvestigation> lstForSampleManagement = null;
+    List<PatientSample> patientSamples;
     String selectText = "";
+    private Institution orderedInstitution;
+    private Department orderedDepartment;
+    private Institution peformingInstitution;
+    private Department peformingDepartment;
+
     private Department department;
+
     @Temporal(TemporalType.TIME)
     private Date fromDate;
     Date toDate;
@@ -163,7 +183,6 @@ public class PatientInvestigationController implements Serializable {
 
     Sms sms;
     private Set<PatientSample> patientSamplesSet;
-    private List<PatientSample> patientSamples;
 
     private String samplingRequestResponse;
 
@@ -181,6 +200,42 @@ public class PatientInvestigationController implements Serializable {
 
     private List<PatientReportItemValue> patientReportItemValues;
 
+    private List<SampleTubeLabel> sampleTubeLabels;
+
+    private List<BillBarcode> billBarcodes;
+    private List<BillBarcode> selectedBillBarcodes;
+
+    public String navigateToPrintBarcodeFromMenu() {
+        return "/lab/sample_barcode_printing?faces-redirect=true";
+    }
+
+    public String navigateToPatientSampelIndex() {
+        return "/lab/sample_index?faces-redirect=true";
+    }
+
+    public String navigateToPrintBarcodesFromSampellingPage(PatientInvestigation ptIx) {
+        if (ptIx == null) {
+            JsfUtil.addErrorMessage("Patient Investigation is NOT selected");
+            return null;
+        }
+        if (ptIx.getBillItem() == null) {
+            JsfUtil.addErrorMessage("No Bill Item");
+            return null;
+        }
+        if (ptIx.getBillItem().getBill() == null) {
+            JsfUtil.addErrorMessage("No Bill");
+            return null;
+        }
+        if (ptIx.getBillItem().getBill().getIdStr() == null) {
+            JsfUtil.addErrorMessage("No Bill id sTRING");
+            return null;
+        }
+
+        inputBillId = ptIx.getBillItem().getBill().getIdStr();
+        prepareSampleCollection();
+        return "/lab/sample_barcode_printing";
+    }
+
     public void fillPatientReportItemValues() {
         String j = "select v from PatientReportItemValue v "
                 + "where v.patientReport.approved=:app "
@@ -193,7 +248,7 @@ public class PatientInvestigationController implements Serializable {
         m.put("rt", InvestigationReportType.General);
         if (false) {
             PatientReportItemValue v = new PatientReportItemValue();
-            if (v.getPatientReport().getPatientInvestigation().getInvestigation().getReportType() 
+            if (v.getPatientReport().getPatientInvestigation().getInvestigation().getReportType()
                     == InvestigationReportType.General) {
 
             }
@@ -436,7 +491,6 @@ public class PatientInvestigationController implements Serializable {
         SysMexOld sysMex = new SysMexOld();
         sysMex.setInputStringBytesSpaceSeperated(msg);
 
-        
         if (sysMex.getBytes().size() > 189 && sysMex.getBytes().size() < 200) {
             SysMexAdf1 m1 = new SysMexAdf1();
             m1.setInputStringBytesSpaceSeperated(msg);
@@ -707,22 +761,14 @@ public class PatientInvestigationController implements Serializable {
             investSummery = getInvestFacade().findByJpql(temSql, temMap, TemporalType.TIMESTAMP);
         }
         if (investSummery == null) {
-            investSummery = new ArrayList<Investigation>();
+            investSummery = new ArrayList<>();
         }
         return investSummery;
     }
 
-    public CommonFunctions getCommonFunctions() {
-        return commonFunctions;
-    }
-
-    public void setCommonFunctions(CommonFunctions commonFunctions) {
-        this.commonFunctions = commonFunctions;
-    }
-
     public Date getFromDate() {
         if (fromDate == null) {
-            fromDate = getCommonFunctions().getStartOfDay(new Date());
+            fromDate = CommonFunctions.getStartOfDay(new Date());
         }
         return fromDate;
     }
@@ -734,7 +780,7 @@ public class PatientInvestigationController implements Serializable {
 
     public Date getToDate() {
         if (toDate == null) {
-            toDate = getCommonFunctions().getEndOfDay(new Date());
+            toDate = CommonFunctions.getEndOfDay(new Date());
         }
         return toDate;
     }
@@ -929,11 +975,11 @@ public class PatientInvestigationController implements Serializable {
             return;
         }
         Bill bill = current.getBillItem().getBill();
-        if (bill == null || bill.getPatient() == null || bill.getPatient().getPerson() == null || bill.getPatient().getPerson().getSmsNumber()== null) {
+        if (bill == null || bill.getPatient() == null || bill.getPatient().getPerson() == null || bill.getPatient().getPerson().getSmsNumber() == null) {
             JsfUtil.addErrorMessage("System Error");
             return;
         }
-        
+
         Sms s = new Sms();
         s.setPending(false);
         s.setBill(bill);
@@ -942,7 +988,7 @@ public class PatientInvestigationController implements Serializable {
         s.setDepartment(sessionController.getLoggedUser().getDepartment());
         s.setInstitution(sessionController.getLoggedUser().getInstitution());
         s.setPatientInvestigation(current);
-       
+
         s.setReceipientNumber(bill.getPatient().getPerson().getSmsNumber());
 
         String messageBody = "Dear Sir/Madam, "
@@ -953,17 +999,12 @@ public class PatientInvestigationController implements Serializable {
         s.setSentSuccessfully(true);
         s.setSmsType(MessageType.LabReport);
         getSmsFacade().create(s);
-        
+
         UserPreference ap = sessionController.getApplicationPreference();
 
-      
-        SmsSentResponse sent = smsManagerEjb.sendSmsByApplicationPreference(s.getReceipientNumber(), s.getSendingMessage(), ap);
+        Boolean sent = smsManagerEjb.sendSms(s);
 
-        if (sent.isSentSuccefully()) {
-            s.setSentSuccessfully(true);
-            s.setReceivedMessage(sent.getReceivedMessage());
-            getSmsFacade().edit(s);
-            
+        if (sent) {
             getCurrent().getBillItem().getBill().setSmsed(true);
             getCurrent().getBillItem().getBill().setSmsedAt(new Date());
             getCurrent().getBillItem().getBill().setSmsedUser(getSessionController().getLoggedUser());
@@ -972,12 +1013,8 @@ public class PatientInvestigationController implements Serializable {
             billFacade.edit(getCurrent().getBillItem().getBill());
             JsfUtil.addSuccessMessage("Sms send");
         } else {
-            s.setSentSuccessfully(false);
-            s.setReceivedMessage(sent.getReceivedMessage());
-            getSmsFacade().edit(s);
             JsfUtil.addErrorMessage("Sending SMS Failed.");
         }
-//        getLabReportSearchByInstitutionController().createPatientInvestigaationList();
     }
 
     public void markAsSampled() {
@@ -1085,9 +1122,59 @@ public class PatientInvestigationController implements Serializable {
         return lstToReceiveSearch;
     }
 
-    public void toCollectSample() {
+    @Deprecated
+    public String navigateToSampleManagement() {
         prepareToSample();
+        return "/lab/sample_management?faces-redirect=true";
+    }
 
+    public String navigateToToCollelct() {
+//        prepareToSample();
+        listPatientInvestigationAwaitingSamplling();
+        return "/lab/patient_investigations_to_collect?faces-redirect=true";
+    }
+
+    public String navigateToGenerateBarcodes() {
+        boolean searchInvestigationsForLoggedInstitution = configOptionApplicationController.getBooleanValueByKey("For Lab Sample Barcode Generation, Search by Ordered Institution", false);
+        if (searchInvestigationsForLoggedInstitution) {
+            orderedInstitution = sessionController.getInstitution();
+        }
+        boolean searchInvestigationsForLoggedDepartment = configOptionApplicationController.getBooleanValueByKey("For Lab Sample Barcode Generation, Search by Ordered Department", false);
+        if (searchInvestigationsForLoggedDepartment) {
+            orderedDepartment = sessionController.getDepartment();
+        }
+        listBillsToGenerateBarcodes();
+        return "/lab/generate_barcode_p?faces-redirect=true";
+    }
+
+    public String navigateToSentToLab() {
+        return "/lab/sent_to_lab?faces-redirect=true";
+    }
+
+//  Navigation Lab sampling at lab for barcode generate page
+    public String navigateToGenerateBarcodesForLab() {
+        return "/lab/generate_barcodes_for_lab?faces-redirect=true";
+    }
+
+    public String navigateToCollectSamples() {
+        listBarcodeGeneratedPatientSamplesYetToCollect();
+        return "/lab/samples_to_collect?faces-redirect=true";
+    }
+
+    public String navigateToAcceptSamples() {
+        return "/lab/accept_samples?faces-redirect=true";
+    }
+
+    public String navigateToRejectSamples() {
+        return "/lab/reject_samples?faces-redirect=true";
+    }
+
+    public String navigateToRevertSamples() {
+        return "/lab/revert_samples?faces-redirect=true";
+    }
+
+    public String navigateToDivideSamples() {
+        return "/lab/divide_samples?faces-redirect=true";
     }
 
     public void prepareToSample() {
@@ -1098,6 +1185,131 @@ public class PatientInvestigationController implements Serializable {
         temMap.put("fromDate", getFromDate());
         lstToSamle = getFacade().findByJpql(temSql, temMap, TemporalType.TIMESTAMP);
         checkRefundBillItems(lstToSamle);
+    }
+
+    public void generateBarcodesForSelectedBills() {
+        System.out.println("generateBarcodesForSelectedBills");
+        System.out.println("selectedBillBarcodes = " + selectedBillBarcodes);
+        if (selectedBillBarcodes == null) {
+            JsfUtil.addErrorMessage("No Bills Seelcted");
+            return;
+        }
+        if (selectedBillBarcodes.isEmpty()) {
+            JsfUtil.addErrorMessage("No Bills Seelcted");
+            return;
+        }
+        for (BillBarcode bb : selectedBillBarcodes) {
+            System.out.println("bb = " + bb);
+            List<Bill> bs = billBeanController.findValidBillsForSampleCollection(bb.getBill());
+            System.out.println("bs = " + bs);
+            List<PatientSampleWrapper> psws = new ArrayList<>();
+            List<PatientSample> pss = prepareSampleCollectionByBillsForPhlebotomyRoom(bs, sessionController.getLoggedUser());
+            System.out.println("pss = " + pss);
+            if (pss != null) {
+                for (PatientSample ps : pss) {
+                    System.out.println("ps = " + ps);
+                    PatientSampleWrapper ptsw = new PatientSampleWrapper(ps);
+                    psws.add(ptsw);
+                }
+            }
+            for (PatientInvestigationWrapper piw : bb.getPatientInvestigationWrappers()) {
+                piw.getPatientInvestigation().setBarcodeGenerated(true);
+                piw.getPatientInvestigation().setBarcodeGeneratedAt(new Date());
+                piw.getPatientInvestigation().setBarcodeGeneratedBy(sessionController.getLoggedUser());
+                ejbFacade.edit(piw.getPatientInvestigation());
+            }
+            System.out.println("psws = " + psws);
+            bb.setPatientSampleWrappers(psws);
+        }
+
+    }
+
+    public void listPatientInvestigationAwaitingSamplling() {
+        String temSql;
+        Map temMap = new HashMap();
+        temSql = "SELECT i FROM PatientInvestigation i where i.retired=false  and i.collected = false and i.billItem.bill.billDate between :fromDate and :toDate";
+        temMap.put("toDate", getToDate());
+        temMap.put("fromDate", getFromDate());
+
+        lstForSampleManagement = getFacade().findByJpql(temSql, temMap, TemporalType.TIMESTAMP);
+    }
+
+    public void listBillsToGenerateBarcodes() {
+        String jpql;
+        Map params = new HashMap();
+        jpql = "SELECT i "
+                + " FROM PatientInvestigation i "
+                + " where i.retired=:ret  "
+                + " and i.barcodeGenerated=:bg "
+                + " and i.billItem.bill.billDate between :fromDate and :toDate ";
+
+        if (orderedInstitution != null) {
+            jpql += " and i.billItem.bill.institution=:ins ";
+            params.put("ins", getOrderedInstitution());
+        }
+
+        if (orderedInstitution != null) {
+            jpql += " and i.billItem.bill.department=:dep ";
+            params.put("dep", getOrderedDepartment());
+        }
+
+        jpql += " order by i.id desc";
+        params.put("fromDate", getFromDate());
+        params.put("toDate", getToDate());
+        params.put("ret", false);
+        params.put("bg", false);
+        billBarcodes = new ArrayList<>();
+        List<PatientInvestigation> pis = getFacade().findByJpql(jpql, params, TemporalType.TIMESTAMP);
+        billBarcodes = createBilBarcodeObjects(pis);
+    }
+
+    public void listBillsWithGeneratedBarcodes() {
+        String jpql;
+        Map params = new HashMap();
+        jpql = "SELECT i "
+                + " FROM PatientInvestigation i "
+                + " where i.retired=:ret  "
+                + " and i.barcodeGenerated=:bg "
+                + " and i.billItem.bill.billDate between :fromDate and :toDate ";
+
+        if (orderedInstitution != null) {
+            jpql += " and i.billItem.bill.institution=:ins ";
+            params.put("ins", getOrderedInstitution());
+        }
+
+        if (orderedInstitution != null) {
+            jpql += " and i.billItem.bill.department=:dep ";
+            params.put("dep", getOrderedDepartment());
+        }
+
+        jpql += " order by i.id desc";
+        params.put("fromDate", getFromDate());
+        params.put("toDate", getToDate());
+        params.put("ret", false);
+        params.put("bg", true);
+        billBarcodes = new ArrayList<>();
+        List<PatientInvestigation> pis = getFacade().findByJpql(jpql, params, TemporalType.TIMESTAMP);
+        billBarcodes = createBilBarcodeObjects(pis);
+    }
+
+    private List<BillBarcode> createBilBarcodeObjects(List<PatientInvestigation> ptis) {
+        Map<Bill, BillBarcode> billBarcodeMap = new HashMap<>();
+        for (PatientInvestigation pi : ptis) {
+            Bill b = pi.getBillItem().getBill();
+            BillBarcode bb;
+
+            if (billBarcodeMap.containsKey(b)) {
+                bb = billBarcodeMap.get(b);
+            } else {
+                bb = new BillBarcode(b);
+                billBarcodeMap.put(b, bb);
+            }
+
+            PatientInvestigationWrapper piw = new PatientInvestigationWrapper(pi);
+            bb.getPatientInvestigationWrappers().add(piw);
+        }
+
+        return new ArrayList<>(billBarcodeMap.values());
     }
 
     public void listPatientSamples() {
@@ -1147,7 +1359,6 @@ public class PatientInvestigationController implements Serializable {
                 + "^FO30,20,^ADN,18,10^FD#{footer}^FS\r\n" // was 10
                 + "^XZ\r\n";
 
-
         String ptLabel = "";
         Bill tb;
         tb = patientSamples.get(0).getBill();
@@ -1192,14 +1403,57 @@ public class PatientInvestigationController implements Serializable {
     }
 
     public void prepareSampleCollection() {
-        Long billId = stringToLong(inputBillId);
-        List<Bill> temBills;
-        if (billId != null) {
-            temBills = prepareSampleCollectionByBillId(billId);
-        } else {
-            temBills = prepareSampleCollectionByBillNumber(inputBillId);
+        try {
+            String barcodeJson = lims.generateSamplesForInternalUse(inputBillId, sessionController.getLoggedUser());
+            // Parse the string into a JSON object
+            JSONObject root = new JSONObject(barcodeJson);
+
+            // Get the "Barcodes" JSON array from the JSON object
+            JSONArray barcodes = root.getJSONArray("Barcodes");
+            String defaultTemplate = "<div style='width: 5cm; height:2.5cm; padding: 8px; border: 1px solid #000; font-family: Arial, sans-serif; font-size: 11px;'>"
+                    + "<div style='margin: 2px 0;'>"
+                    + " Name: " + "{name} ({age}) <br/>"
+                    + " Gender: " + "{sex} <br/>"
+                    + " Date: " + "{billDate} <br/>"
+                    + "</div>"
+                    + "<div style='font-family: \"Libre Barcode 128\", cursive; font-size: 24px; margin: 5px 0;'>" + "{barcode}" + "</div>"
+                    + "<div style='margin: 2px 0;'>"
+                    + "Tests: " + "{tests} <br/>"
+                    + "Ins ID: " + "{insId} <br/>"
+                    + "Dept ID: " + "{deptId}" + "</div>"
+                    + "</div>";
+            String templateAbove = configOptionApplicationController.getLongTextValueByKey("Template for Sample Tube Sticker Printing - Above Barcode", defaultTemplate);
+            String templateBelow = configOptionApplicationController.getLongTextValueByKey("Template for Sample Tube Sticker Printing - Below Barcode", "");
+            sampleTubeLabels = new ArrayList<>();
+            for (int i = 0; i < barcodes.length(); i++) {
+                // Get each object in the array and convert it to a string
+                JSONObject singleBarcode = barcodes.getJSONObject(i);
+                SampleTubeLabel stl = new SampleTubeLabel();
+                stl.setTextAboveBarcode(createLabelsFromJsonAndTemplate(templateAbove, singleBarcode));
+                stl.setTextBelowBarcode(createLabelsFromJsonAndTemplate(templateBelow, singleBarcode));
+                stl.setBarcode(singleBarcode.optString("barcode", "N/A"));
+                sampleTubeLabels.add(stl);
+            }
+        } catch (Exception e) {
+            // Handle the exception appropriately
+
         }
-        prepareSampleCollectionByBills(temBills);
+    }
+
+    public String createLabelsFromJsonAndTemplate(String template, JSONObject singleBarcode) {
+        // Assuming template string contains placeholders like {name}, {barcode}, etc.
+        // You need to replace these placeholders with actual values from the JSON object
+        String label = template
+                .replace("{name}", singleBarcode.optString("name", "N/A")) // Use 'optString' to handle missing keys
+                .replace("{billDate}", singleBarcode.optString("billDate", "N/A"))
+                .replace("{sex}", singleBarcode.optString("sex", "N/A"))
+                .replace("{age}", singleBarcode.optString("age", "N/A"))
+                .replace("{barcode}", singleBarcode.optString("barcode", "N/A"))
+                .replace("{tests}", singleBarcode.optString("tests", "N/A"))
+                .replace("{insId}", singleBarcode.optString("insid", "N/A")) // Assumed JSON key as 'insid'
+                .replace("{deptId}", singleBarcode.optString("deptid", "N/A"));
+
+        return label;
     }
 
     public Long stringToLong(String input) {
@@ -1210,6 +1464,7 @@ public class PatientInvestigationController implements Serializable {
         }
     }
 
+    @Deprecated
     public List<Bill> prepareSampleCollectionByBillId(Long bill) {
         Bill b = getBillFacade().find(bill);
         List<Bill> bs = billController.validBillsOfBatchBill(b.getBackwardReferenceBill());
@@ -1220,6 +1475,7 @@ public class PatientInvestigationController implements Serializable {
         return bs;
     }
 
+    @Deprecated
     public List<Bill> prepareSampleCollectionByBillNumber(String insId) {
         String j = "Select b from Bill b where b.insId=:id";
         Map m = new HashMap();
@@ -1236,14 +1492,15 @@ public class PatientInvestigationController implements Serializable {
     public void temUpdatePatientSamplesToMatchCurrentDepartmentAndInstitution() {
         List<PatientSample> pss = getPatientSampleFacade().findAll();
         for (PatientSample ps : pss) {
-            ps.setSampleDepartment(sessionController.getLoggedUser().getDepartment());
-            ps.setSampleInstitution(sessionController.getLoggedUser().getInstitution());
-            ps.setSampledAt(ps.getCreatedAt());
+            ps.setSampleCollectedDepartment(sessionController.getLoggedUser().getDepartment());
+            ps.setSampleCollectedInstitution(sessionController.getLoggedUser().getInstitution());
+            ps.setSampleCollectedAt(ps.getCreatedAt());
             ps.setSampleCollecter(ps.getCreater());
             getPatientSampleFacade().edit(ps);
         }
     }
 
+    @Deprecated
     public void prepareSampleCollectionByBills(List<Bill> bills) {
         String j = "";
         Map m;
@@ -1300,13 +1557,13 @@ public class PatientInvestigationController implements Serializable {
                             pts.setMachine(ixi.getMachine());
                             pts.setPatient(b.getPatient());
                             pts.setBill(b);
-                            pts.setSampleDepartment(sessionController.getLoggedUser().getDepartment());
-                            pts.setSampleInstitution(sessionController.getLoggedUser().getInstitution());
+                            pts.setSampleCollectedDepartment(sessionController.getLoggedUser().getDepartment());
+                            pts.setSampleCollectedInstitution(sessionController.getLoggedUser().getInstitution());
                             pts.setSampleCollecter(sessionController.getLoggedUser());
-                            pts.setSampledAt(new Date());
+                            pts.setSampleCollectedAt(new Date());
                             pts.setCreatedAt(new Date());
                             pts.setCreater(sessionController.getLoggedUser());
-                            pts.setCollected(false);
+                            pts.setSampleCollected(false);
                             pts.setReadyTosentToAnalyzer(false);
                             pts.setSentToAnalyzer(false);
                             getPatientSampleFacade().create(pts);
@@ -1412,6 +1669,60 @@ public class PatientInvestigationController implements Serializable {
         checkRefundBillItems(lstToSamle);
     }
 
+    public void listPatientInvestigationsWhereSamplingCompleting() {
+        String temSql;
+        Map temMap = new HashMap();
+        temSql = "SELECT i FROM PatientInvestigation i where i.retired=false  and i.collected = true and i.billItem.bill.billDate between :fromDate and :toDate";
+        temMap.put("toDate", getToDate());
+        temMap.put("fromDate", getFromDate());
+        lstForSampleManagement = getFacade().findByJpql(temSql, temMap, TemporalType.TIMESTAMP);
+    }
+
+    public void listBarcodeGeneratedPatientSamplesYetToCollect() {
+        patientSamples = findGeneratedSamplesYetToCollect();
+    }
+
+    public void listBarcodeGeneratedPatientSamplesCollected() {
+        patientSamples = findGeneratedSamplesCollected();
+    }
+
+    public List<PatientSample> findGeneratedSamplesYetToCollect() {
+        return findGeneratedSamples(true, false, fromDate, toDate);
+    }
+
+    public List<PatientSample> findGeneratedSamplesCollected() {
+        return findGeneratedSamples(true, true, fromDate, toDate);
+    }
+
+    public List<PatientSample> findGeneratedSamples(boolean barcodeGenerated, boolean sampleCollected, Date fromDate, Date toDate) {
+        List<PatientSample> pss;
+        Map params = new HashMap<>();
+        String jpql = "SELECT ps FROM PatientSample ps WHERE ps.retired=:ret AND ps.barcodeGenerated=:bg AND ps.sampleCollected=:sc AND ps.barcodeGeneratedAt between :fromDate and :toDate";
+        params.put("ret", false);
+        params.put("bg", barcodeGenerated);
+        params.put("sc", sampleCollected);
+        params.put("fromDate", fromDate);
+        params.put("toDate", toDate);
+        System.out.println("jpql = " + jpql);
+        System.out.println("params = " + params);
+        pss = patientSampleFacade.findByJpql(jpql, params, TemporalType.TIMESTAMP);
+        System.out.println("pss = " + pss);
+        return pss;
+    }
+
+    public void listComplletedSamples() {
+        String jpql;
+        Map params = new HashMap();
+        jpql = "SELECT i "
+                + "FROM PatientSample i "
+                + " where i.retired=false "
+                + " and i.collected = true "
+                + " and i.billItem.bill.billDate between :fromDate and :toDate";
+        params.put("toDate", getToDate());
+        params.put("fromDate", getFromDate());
+        lstForSampleManagement = getFacade().findByJpql(jpql, params, TemporalType.TIMESTAMP);
+    }
+
     public void checkRefundBillItems(List<PatientInvestigation> pis) {
         for (PatientInvestigation pi : pis) {
             markRefundBillItem(pi);
@@ -1454,7 +1765,6 @@ public class PatientInvestigationController implements Serializable {
 //        //////System.out.println("Sql is " + temSql);
         toReceive = getFacade().findByJpql(temSql, temMap, TemporalType.TIMESTAMP);
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Lab/worksheets(/faces/lab/receive.xhtml)");
     }
 
     public void markYetToReceiveOnes() {
@@ -1702,8 +2012,6 @@ public class PatientInvestigationController implements Serializable {
         }
         return patientSamples;
     }
-    
-    
 
     public void setPatientSamples(List<PatientSample> patientSamples) {
         this.patientSamples = patientSamples;
@@ -1857,6 +2165,78 @@ public class PatientInvestigationController implements Serializable {
         this.activeIndexOfManageInvestigation = activeIndexOfManageInvestigation;
     }
 
+    public List<SampleTubeLabel> getSampleTubeLabels() {
+        return sampleTubeLabels;
+    }
+
+    public void setSampleTubeLabels(List<SampleTubeLabel> sampleTubeLabels) {
+        this.sampleTubeLabels = sampleTubeLabels;
+    }
+
+    public Lims getLims() {
+        return lims;
+    }
+
+    public void setLims(Lims lims) {
+        this.lims = lims;
+    }
+
+    public List<PatientInvestigation> getLstForSampleManagement() {
+        return lstForSampleManagement;
+    }
+
+    public void setLstForSampleManagement(List<PatientInvestigation> lstForSampleManagement) {
+        this.lstForSampleManagement = lstForSampleManagement;
+    }
+
+    public List< BillBarcode> getBillBarcodes() {
+        return billBarcodes;
+    }
+
+    public void setBillBarcodes(List< BillBarcode> billBarcodes) {
+        this.billBarcodes = billBarcodes;
+    }
+
+    public List<BillBarcode> getSelectedBillBarcodes() {
+        return selectedBillBarcodes;
+    }
+
+    public void setSelectedBillBarcodes(List<BillBarcode> selectedBillBarcodes) {
+        this.selectedBillBarcodes = selectedBillBarcodes;
+    }
+
+    public Institution getOrderedInstitution() {
+        return orderedInstitution;
+    }
+
+    public void setOrderedInstitution(Institution orderedInstitution) {
+        this.orderedInstitution = orderedInstitution;
+    }
+
+    public Department getOrderedDepartment() {
+        return orderedDepartment;
+    }
+
+    public void setOrderedDepartment(Department orderedDepartment) {
+        this.orderedDepartment = orderedDepartment;
+    }
+
+    public Institution getPeformingInstitution() {
+        return peformingInstitution;
+    }
+
+    public void setPeformingInstitution(Institution peformingInstitution) {
+        this.peformingInstitution = peformingInstitution;
+    }
+
+    public Department getPeformingDepartment() {
+        return peformingDepartment;
+    }
+
+    public void setPeformingDepartment(Department peformingDepartment) {
+        this.peformingDepartment = peformingDepartment;
+    }
+
     /**
      *
      */
@@ -1908,13 +2288,213 @@ public class PatientInvestigationController implements Serializable {
         this.commonController = commonController;
     }
 
-    public BillItemFacade getBillItemFacade() {
-        return billItemFacade;
+    public List<PatientSample> prepareSampleCollectionByBillsForPhlebotomyRoom(List<Bill> bills, WebUser wu) {
+        System.out.println("wu = " + wu);
+        System.out.println("bills = " + bills);
+        System.out.println("wu = " + wu);
+        String j = "";
+        Map m;
+        Map<Long, PatientSample> rPatientSamplesMap = new HashMap<>();
+
+        if (bills == null) {
+            return null;
+        }
+
+        for (Bill b : bills) {
+            System.out.println("b = " + b);
+            m = new HashMap();
+            m.put("can", false);
+            m.put("bill", b);
+            j = "Select pi from PatientInvestigation pi "
+                    + " where pi.cancelled=:can "
+                    + " and pi.billItem.bill=:bill";
+            List<PatientInvestigation> pis = ejbFacade.findByJpql(j, m);
+            System.out.println("pis = " + pis);
+            if (pis == null) {
+                return null;
+            }
+
+            for (PatientInvestigation ptix : pis) {
+                System.out.println("ptix = " + ptix);
+
+                Investigation ix = ptix.getInvestigation();
+
+                if (ix == null) {
+                    continue;
+                }
+
+                ptix.setCollected(true);
+                ptix.setSampleCollecter(wu);
+                ptix.setSampleDepartment(wu.getDepartment());
+                ptix.setSampleInstitution(wu.getInstitution());
+                ptix.setSampledAt(new Date());
+                ejbFacade.edit(ptix);
+
+                List<InvestigationItem> ixis = getItems(ix);
+
+                if (ixis == null) {
+                    continue;
+                }
+
+                for (InvestigationItem ixi : ixis) {
+                    System.out.println("ixi = " + ixi);
+
+                    if (ixi.getIxItemType() == InvestigationItemType.Value) {
+                        System.out.println("ixi.getTube() = " + ixi.getTube());
+                        if (ixi.getTube() == null) {
+                            continue;
+                        }
+                        System.out.println("ixi.getSample() = " + ixi.getSample());
+                        if (ixi.getSample() == null) {
+                            continue;
+                        }
+
+                        j = "select ps from PatientSample ps "
+                                + " where ps.tube=:tube "
+                                + " and ps.sample=:sample "
+                                + " and ps.machine=:machine "
+                                + " and ps.patient=:pt "
+                                + " and ps.bill=:bill ";
+//                                + " and ps.collected=:ca
+                        m = new HashMap();
+                        m.put("tube", ixi.getTube());
+
+                        m.put("sample", ixi.getSample());
+
+                        m.put("machine", ixi.getMachine());
+
+                        m.put("pt", b.getPatient());
+
+                        m.put("bill", b);
+//                        m.put("ca", false);
+                        if (ix.isHasMoreThanOneComponant()) {
+                            j += " and ps.investigationComponant=:sc ";
+                            m.put("sc", ixi.getSampleComponent());
+                        }
+                        System.out.println("j = " + j);
+                        System.out.println("m = " + m);
+                        PatientSample pts = patientSampleFacade.findFirstByJpql(j, m);
+                        System.out.println("pts = " + pts);
+                        if (pts == null) {
+                            pts = new PatientSample();
+
+                            pts.setTube(ixi.getTube());
+                            pts.setSample(ixi.getSample());
+                            if (ix.isHasMoreThanOneComponant()) {
+                                pts.setInvestigationComponant(ixi.getSampleComponent());
+                            }
+                            pts.setMachine(ixi.getMachine());
+                            pts.setPatient(b.getPatient());
+                            pts.setBill(b);
+
+                            pts.setBarcodeGenerated(true);
+                            pts.setBarcodeGeneratedDepartment(wu.getDepartment());
+                            pts.setBarcodeGeneratedInstitution(wu.getInstitution());
+                            pts.setBarcodeGenerator(wu);
+                            pts.setBarcodeGeneratedAt(new Date());
+
+                            pts.setCreatedAt(new Date());
+                            pts.setCreater(wu);
+
+                            pts.setSampleCollected(false);
+                            pts.setSampleReceivedAtLab(false);
+                            pts.setReadyTosentToAnalyzer(false);
+                            pts.setSentToAnalyzer(false);
+                            pts.setReceivedFromAnalyzer(false);
+                            pts.setRetired(false);
+                            patientSampleFacade.create(pts);
+                            System.out.println("new pts = " + pts);
+                        }
+                        rPatientSamplesMap.put(pts.getId(), pts);
+
+                        PatientSampleComponant ptsc;
+                        j = "select ps from PatientSampleComponant ps "
+                                + " where ps.patientSample=:pts "
+                                + " and ps.bill=:bill "
+                                + " and ps.patient=:pt "
+                                + " and ps.patientInvestigation=:ptix "
+                                + " and ps.investigationComponant=:ixc";
+                        m = new HashMap();
+                        m.put("pts", pts);
+                        m.put("bill", b);
+                        m.put("pt", b.getPatient());
+                        m.put("ptix", ptix);
+                        m.put("ixc", ixi.getSampleComponent());
+                        m.put("pts", pts);
+
+                        m.put("bill", b);
+
+                        m.put("pt", b.getPatient());
+
+                        m.put("ptix", ptix);
+
+                        m.put("ixc", ixi.getSampleComponent());
+
+                        System.out.println("j = " + j);
+                        System.out.println("m = " + m);
+
+                        ptsc = patientSampleComponantFacade.findFirstByJpql(j, m);
+                        System.out.println("ptsc = " + ptsc);
+                        if (ptsc == null) {
+                            ptsc = new PatientSampleComponant();
+                            ptsc.setPatientSample(pts);
+                            ptsc.setBill(b);
+                            ptsc.setPatient(b.getPatient());
+                            ptsc.setPatientInvestigation(ptix);
+                            ptsc.setInvestigationComponant(ixi.getSampleComponent());
+                            ptsc.setCreatedAt(new Date());
+                            ptsc.setCreater(wu);
+                            patientSampleComponantFacade.create(ptsc);
+                        }
+                    }
+                }
+            }
+
+        }
+
+        List<PatientSample> rPatientSamples = new ArrayList<>(rPatientSamplesMap.values());
+        return rPatientSamples;
     }
 
-    public void setBillItemFacade(BillItemFacade billItemFacade) {
-        this.billItemFacade = billItemFacade;
+    public List<PatientSampleComponant> getPatientSampleComponentsByPatientSample(PatientSample patientSample) {
+        List<PatientSampleComponant> ptsc;
+        String j;
+        Map m = new HashMap();
+        j = "select ps from PatientSampleComponant ps "
+                + " where ps.patientSample=:pts "
+                + " and ps.retired=false ";
+        m = new HashMap();
+        m.put("pts", patientSample);
+        System.out.println("j = " + j);
+        System.out.println("m = " + m);
+        ptsc = patientSampleComponantFacade.findByJpql(j, m);
+        System.out.println("ptsc = " + ptsc);
+        return ptsc;
     }
 
-    
+    public List<InvestigationItem> getItems(Investigation ix) {
+        List<InvestigationItem> iis;
+        if (ix == null) {
+            return new ArrayList<>();
+        }
+        Investigation temIx = ix;
+        if (ix.getReportedAs() != null) {
+            if (ix.getReportedAs() instanceof Investigation) {
+                temIx = (Investigation) ix.getReportedAs();
+            }
+        }
+
+        if (ix.getId() != null) {
+            String temSql;
+            temSql = "SELECT i FROM InvestigationItem i where i.retired<>true and i.item=:item order by i.riTop, i.riLeft";
+            Map m = new HashMap();
+            m.put("item", temIx);
+
+            iis = investigationItemFacade.findByJpql(temSql, m);
+        } else {
+            iis = new ArrayList<>();
+        }
+        return iis;
+    }
+
 }

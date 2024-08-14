@@ -1,6 +1,7 @@
 package com.divudi.light.common;
 
 import java.util.Date;
+import java.util.Objects;
 
 /**
  *
@@ -11,6 +12,7 @@ public class BillLight {
     private Long id;
     private String billNo;
     private Date billDate;
+    private Date billTime;
     private String institutionName;
     private String departmentName;
     private String userName;
@@ -20,8 +22,35 @@ public class BillLight {
     private Double discount;
     private Double netValue;
     private Long patientId;
-
+    private String canterName;
+    private String referringDoctorName;
+    
     public BillLight() {
+    }
+
+    public BillLight(Long id, String billNo, Date billDate, Date billTime, String patientName, Double netValue) {
+        this.id = id;
+        this.billNo = billNo;
+        this.billDate = billDate;
+        this.billTime = billTime;
+        this.patientName = patientName;
+        this.netValue = netValue;
+    }
+
+    public BillLight(Long id, String billNo, Date billDate, String CenterName, String institutionName, String departmentName, String userName, String patientName, String patientPhone, Double grossValue, Double discount, Double netValue, Long patientId) {
+        this.id = id;
+        this.billNo = billNo;
+        this.billDate = billDate;
+        this.canterName = CenterName;
+        this.institutionName = institutionName;
+        this.departmentName = departmentName;
+        this.userName = userName;
+        this.patientName = patientName;
+        this.patientPhone = patientPhone;
+        this.grossValue = grossValue;
+        this.discount = discount;
+        this.netValue = netValue;
+        this.patientId = patientId;
     }
 
     public BillLight(Long id, String billNo, Date billDate, String institutionName, String departmentName, String userName, String patientName, String patientPhone, Double grossValue, Double discount, Double netValue) {
@@ -37,7 +66,7 @@ public class BillLight {
         this.discount = discount;
         this.netValue = netValue;
     }
-    
+
     public BillLight(Long id, String billNo, Date billDate, String institutionName, String departmentName, String userName, String patientName, String patientPhone, Double grossValue, Double discount, Double netValue, Long patientId) {
         this.id = id;
         this.billNo = billNo;
@@ -147,6 +176,52 @@ public class BillLight {
 
     public void setPatientId(Long patientId) {
         this.patientId = patientId;
+    }
+
+    public String getReferringDoctorName() {
+        return referringDoctorName;
+    }
+
+    public void setReferringDoctorName(String referringDoctorName) {
+        this.referringDoctorName = referringDoctorName;
+    }
+
+    public Date getBillTime() {
+        return billTime;
+    }
+
+    public void setBillTime(Date billTime) {
+        this.billTime = billTime;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 37 * hash + Objects.hashCode(this.id);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final BillLight other = (BillLight) obj;
+        return Objects.equals(this.id, other.id);
+    }
+
+    public String getCanterName() {
+        return canterName;
+    }
+
+    public void setCanterName(String canterName) {
+        this.canterName = canterName;
     }
 
 }

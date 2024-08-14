@@ -5,6 +5,7 @@
 package com.divudi.entity.hr;
 
 import com.divudi.data.hr.WorkingType;
+import com.divudi.entity.Bill;
 import com.divudi.entity.Staff;
 import com.divudi.entity.WebUser;
 import java.io.Serializable;
@@ -19,14 +20,13 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Temporal;
 import javax.persistence.Transient;
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  *
  * @author Buddhika
  */
 @Entity
-@XmlRootElement
+
 public class WorkingTime implements Serializable {
 
     @OneToOne(mappedBy = "continuedTo")
@@ -64,6 +64,9 @@ public class WorkingTime implements Serializable {
     private WorkingType workingType;
 
     private boolean addedToSalary;
+    
+    @ManyToOne
+    private Bill professinoalPaymentBill;
 
     // 7am - 1pm - Normal
     // 1pm - 7pm > OT
@@ -88,6 +91,8 @@ public class WorkingTime implements Serializable {
         return durationInMinutes;
     }
 
+    
+    
     public void setDurationInMinutes(long durationInMinutes) {
         this.durationInMinutes = durationInMinutes;
     }
@@ -231,5 +236,13 @@ public class WorkingTime implements Serializable {
 
     public void setRetireComments(String retireComments) {
         this.retireComments = retireComments;
+    }
+
+    public Bill getProfessinoalPaymentBill() {
+        return professinoalPaymentBill;
+    }
+
+    public void setProfessinoalPaymentBill(Bill professinoalPaymentBill) {
+        this.professinoalPaymentBill = professinoalPaymentBill;
     }
 }

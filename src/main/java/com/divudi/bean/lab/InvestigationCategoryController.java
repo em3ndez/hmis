@@ -11,7 +11,6 @@ package com.divudi.bean.lab;
 
 import com.divudi.bean.common.SessionController;
 
-import com.divudi.entity.Category;
 import com.divudi.entity.lab.InvestigationCategory;
 import com.divudi.entity.lab.Machine;
 import com.divudi.facade.InvestigationCategoryFacade;
@@ -217,17 +216,17 @@ public class InvestigationCategoryController implements Serializable {
     }
 
     public String navigateToInvestigationFees() {
-        return "/admin/lims/investigation_fee.xhtml";
+        return "/admin/lims/investigation_fee.xhtml?faces-redirect=true";
     }
 
     public String navigateToOpdServiceCategory() {
-        return "/admin/items/opd_service_category.xhtml";
+        return "/admin/items/opd_service_category.xhtml?faces-redirect=true";
     }
 
     @Deprecated
     public String navigateToAddInvestigationCategoryForAdmin() {
         prepareAdd();
-        return "/admin/lims/investigation_category";
+        return "/admin/lims/investigation_category?faces-redirect=true";
     }
 
     @Deprecated
@@ -236,13 +235,13 @@ public class InvestigationCategoryController implements Serializable {
             JsfUtil.addErrorMessage("Nothing selected");
             return "";
         }
-        return "/admin/lims/investigation_category";
+        return "/admin/lims/investigation_category?faces-redirect=true";
     }
 
     @Deprecated
     public String navigateToListInvestigationCategoriesForAdmin() {
         getItems();
-        return "/admin/items/investigation_category_list";
+        return "/admin/items/investigation_category_list?faces-redirect=true";
     }
     
 
@@ -272,7 +271,7 @@ public class InvestigationCategoryController implements Serializable {
     }
 
     public String navigateToOpdServiceSubCategory() {
-        return "/admin/items/opd_service_subcategory.xhtml";
+        return "/admin/items/opd_service_subcategory?faces-redirect=true";
     }
     
     public String navigateToItemsAndServices() {

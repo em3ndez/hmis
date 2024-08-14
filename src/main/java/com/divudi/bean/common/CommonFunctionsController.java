@@ -5,7 +5,6 @@ import com.divudi.data.Title;
 import com.divudi.data.dataStructure.DateRange;
 import com.divudi.data.dataStructure.YearMonthDay;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.TimeZone;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
@@ -13,8 +12,6 @@ import java.util.Date;
 import java.time.ZoneId;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 
 /**
  *
@@ -23,7 +20,45 @@ import java.time.temporal.ChronoUnit;
 @Named(value = "commonFunctionsController")
 @ApplicationScoped
 public class CommonFunctionsController {
-    
+
+    public String changeTextCases(String nm, String tc) {
+        if (tc == null) {
+            return nm;
+        }
+        switch (tc.toUpperCase()) {
+            case "UPPERCASE":
+                return nm.toUpperCase();
+            case "LOWERCASE":
+                return nm.toLowerCase();
+            case "CAPITALIZE":
+                return capitalizeFirstLetter(nm);
+            default:
+                return nm;
+        }
+    }
+
+    public Date dateAfter24Hours(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(Calendar.HOUR_OF_DAY, 24);
+        //System.out.println("calendar = " + calendar.getTime());
+        return calendar.getTime();
+    }
+
+    public String capitalizeFirstLetter(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+
+        StringBuilder result = new StringBuilder();
+        String[] words = str.split("\\s");
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                result.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1)).append(" ");
+            }
+        }
+        return result.toString().trim();
+    }
 
     public DateRange getDateRangeForOT(Date date) {
         DateRange dateRange = new DateRange();

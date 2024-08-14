@@ -94,8 +94,7 @@
                             <p:commandButton ajax="false" value="Delete" action="#{staffAdditionalFormController.deleteAdditionalForm()}"/>
                             <p:inputText id="recomment" value="#{staffAdditionalFormController.currentAdditionalForm.retireComments}" />
 
-                            <p:watermark for="recomment" value="Delete Comment"/>
-
+                            
                         </h:panelGrid>
                     </p:panel>
                     <p:panel header="Search Forms">
@@ -162,7 +161,7 @@
                             <p:column headerText="Comment">
                                 <p:outputLabel value="#{add.comments}" ></p:outputLabel>
                             </p:column>
-                            <p:column headerText="Creater">
+                            <p:column headerText="Creator">
                                 <p:outputLabel value="#{add.creater.webUserPerson.nameWithTitle}" ></p:outputLabel>
                                 <br></br>
                                 <p:outputLabel value="Deleted By  #{add.retirer.webUserPerson.nameWithTitle}" rendered="#{add.retired}" style="color: blue;"></p:outputLabel>

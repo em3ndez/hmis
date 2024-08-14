@@ -901,7 +901,7 @@ public class StoreController1 implements Serializable {
         createInstitutionTransferReceive();
         createInstitutionIssue();
         
-commonController.printReportDetails(fromDate, toDate, startTime, "Store/Purchase/Purchase orders(view Details)(/faces/store/store_purhcase_order_request.xhtml)");
+
     }
 
     public void createGrnTable() {
@@ -1053,12 +1053,7 @@ commonController.printReportDetails(fromDate, toDate, startTime, "Store/Purchase
 
     public Date getFromDate() {
         if (fromDate == null) {
-//            Date date = ;
-            Calendar cal=Calendar.getInstance();
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            fromDate = getCommonFunctions().getAddedDate(cal.getTime(), -30);
+            fromDate = getCommonFunctions().getStartOfDay(new Date());
         }
         return fromDate;
     }

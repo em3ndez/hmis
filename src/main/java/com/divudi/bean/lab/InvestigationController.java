@@ -26,7 +26,6 @@ import com.divudi.entity.Department;
 import com.divudi.entity.Institution;
 import com.divudi.entity.Item;
 import com.divudi.entity.ItemFee;
-import com.divudi.entity.clinical.ClinicalEntity;
 import com.divudi.entity.lab.Investigation;
 import com.divudi.entity.lab.InvestigationCategory;
 import com.divudi.entity.lab.InvestigationItem;
@@ -63,7 +62,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.ejb.EJB;
-import javax.enterprise.context.Dependent;
 import javax.enterprise.context.SessionScoped;
 import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
@@ -153,28 +151,28 @@ public class InvestigationController implements Serializable {
 
     @Deprecated
     public String navigateToManageInvestigationForEmr() {
-        return "/emr/admin/investigations";
+        return "/emr/admin/investigations?faces-redirect=true";
     }
 
     @Deprecated
     public String navigateToAddInvestigationForLab() {
         current = new Investigation();
-        return "/admin/lims/index";
+        return "/admin/lims/index?faces-redirect=true";
     }
 
     public String navigateToLimsAdminIndex() {
-        return "/admin/lims/index";
+        return "/admin/lims/index?faces-redirect=true";
     }
 
     @Deprecated
     public String navigateToAddInvestigationForAdmin() {
         current = new Investigation();
-        return "/admin/lims/investigation";
+        return "/admin/lims/investigation?faces-redirect=true";
     }
 
     public String navigateToAddInvestigation() {
         current = new Investigation();
-        return "/admin/lims/investigation";
+        return "/admin/lims/investigation?faces-redirect=true";
     }
 
     public String navigateToAddInvestigationForLabForExport() {
@@ -187,7 +185,7 @@ public class InvestigationController implements Serializable {
             JsfUtil.addErrorMessage("Nothing Selected");
             return "";
         }
-        return "/lab/manage_investigation";
+        return "/lab/manage_investigation?faces-redirect=true";
     }
 
     // Method to generate the Excel file and initiate the download
@@ -233,7 +231,7 @@ public class InvestigationController implements Serializable {
             JsfUtil.addErrorMessage("Nothing Selected");
             return "";
         }
-        return "/lab/value_sets";
+        return "/lab/value_sets?faces-redirect=true";
     }
 
     public String navigateToManageFlagsForLab() {
@@ -241,7 +239,7 @@ public class InvestigationController implements Serializable {
             JsfUtil.addErrorMessage("Nothing Selected");
             return "";
         }
-        return "/lab/flags";
+        return "/admin/lims/flags?faces-redirect=true";
     }
 
     @Deprecated
@@ -250,7 +248,7 @@ public class InvestigationController implements Serializable {
             JsfUtil.addErrorMessage("Nothing to delete");
             return "";
         }
-        return "/admin/lims/investigation_single";
+        return "/admin/lims/investigation_single?faces-redirect=true";
     }
 
     public String navigateToManageInvestigation() {
@@ -258,12 +256,12 @@ public class InvestigationController implements Serializable {
             JsfUtil.addErrorMessage("Nothing to delete");
             return "";
         }
-        return "/admin/lims/investigation";
+        return "/admin/lims/investigation?faces-redirect=true";
     }
 
     public String navigateToListInvestigationsForAdmin() {
         fillItems();
-        return "/admin/items/investigation_list";
+        return "/admin/items/investigation_list?faces-redirect=true";
     }
 
     public String toAddManyIx() {
@@ -371,7 +369,7 @@ public class InvestigationController implements Serializable {
     }
 
     public String toUuploadJsonToInvestigations() {
-        return "/admin/lab/upload_investigations";
+        return "/admin/lab/upload_investigations?faces-redirect=true";
     }
 
     public String uploadJsonToCreateAnInvestigations() {
@@ -388,7 +386,7 @@ public class InvestigationController implements Serializable {
 
         } catch (IOException ex) {
         }
-        return "/lab/investigation_format";
+        return "/lab/investigation_format?faces-redirect=true";
     }
 
     public String uploadExcelToCreateAnInvestigations() {
@@ -462,7 +460,7 @@ public class InvestigationController implements Serializable {
         }
         investigationItemController.setCurrentInvestigation((Investigation) current.getReportedAs());
 
-        return "/admin/lims/investigation_values";
+        return "/admin/lims/investigation_values?faces-redirect=true";
     }
 
     public String toLoadParentInvestigation() {
@@ -502,7 +500,7 @@ public class InvestigationController implements Serializable {
             JsfUtil.addErrorMessage("Please select investigation");
             return "";
         }
-        return "/admin/lims/pathology_format";
+        return "/admin/lims/pathology_format?faces-redirect=true";
     }
 
     public String navigateToManageCalculations() {
@@ -518,7 +516,7 @@ public class InvestigationController implements Serializable {
             current.setReportedAs(current);
         }
         ixCalController.setIx((Investigation) current.getReportedAs());
-        return "/admin/lims/calculation";
+        return "/admin/lims/calculation?faces-redirect=true";
     }
 
     public String navigateToReplaceableInvestigations() {
@@ -534,7 +532,7 @@ public class InvestigationController implements Serializable {
             current.setReportedAs(current);
         }
         itemForItemController.setParentItem(current);
-        return "/admin/lims/replaceable_ix";
+        return "/admin/lims/replaceable_ix?faces-redirect=true";
     }
 
     public String navigateToManageFees() {
@@ -548,7 +546,7 @@ public class InvestigationController implements Serializable {
         }
         itemFeeManager.setItem(current);
         itemFeeManager.fillFees();
-        return "/admin/lims/manage_fees";
+        return "/admin/lims/manage_fees?faces-redirect=true";
     }
 
     public void listDeletedIxs() {
@@ -637,7 +635,7 @@ public class InvestigationController implements Serializable {
         }
         sql += " order by i.name";
         allIxs = getFacade().findByJpql(sql, m);
-        return "/lab/investigation_list";
+        return "/lab/investigation_list?faces-redirect=true";
     }
 
     public void clearFields() {
@@ -662,7 +660,7 @@ public class InvestigationController implements Serializable {
             }
         }
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Lab/Administrator/Setup/report samples(/faces/lab/report_samples.xhtml)");
+        
     }
 
     public List<PatientReport> getSelectedPatientReports() {
@@ -874,7 +872,7 @@ public class InvestigationController implements Serializable {
             sql += " and c.institution is null ";
         }
 
-//        if (sessionController.getLoggedPreference().isInstitutionSpecificItems()) {
+//        if (sessionController.getApplicationPreference().isInstitutionSpecificItems()) {
 //            sql += " and (c.institution is null "
 //                    + " or c.institution=:ins) ";
 //            m.put("ins", sessionController.getInstitution());
@@ -930,7 +928,7 @@ public class InvestigationController implements Serializable {
             sql += " and c.institution is null ";
         }
 
-//        if (sessionController.getLoggedPreference().isInstitutionSpecificItems()) {
+//        if (sessionController.getApplicationPreference().isInstitutionSpecificItems()) {
 //            sql += " and (c.institution is null "
 //                    + " or c.institution=:ins) ";
 //            m.put("ins", sessionController.getInstitution());
@@ -981,7 +979,7 @@ public class InvestigationController implements Serializable {
 
     public Boolean isListMasterItemsOnly() {
         if (listMasterItemsOnly == null) {
-            if (getSessionController().getLoggedPreference().isInstitutionSpecificItems()) {
+            if (getSessionController().getApplicationPreference().isInstitutionSpecificItems()) {
                 listMasterItemsOnly = true;
             } else {
                 listMasterItemsOnly = false;
@@ -992,7 +990,7 @@ public class InvestigationController implements Serializable {
 
     public Boolean getListMasterItemsOnly() {
         if (listMasterItemsOnly == null) {
-            if (getSessionController().getLoggedPreference().isInstitutionSpecificItems()) {
+            if (getSessionController().getApplicationPreference().isInstitutionSpecificItems()) {
                 listMasterItemsOnly = true;
             } else {
                 listMasterItemsOnly = false;
@@ -1041,7 +1039,7 @@ public class InvestigationController implements Serializable {
             sql += " and (c.name) like :st ";
             m.put("st", "%" + getSelectText().toUpperCase() + "%");
         }
-        if (sessionController.getLoggedPreference().isInstitutionSpecificItems()) {
+        if (sessionController.getApplicationPreference().isInstitutionSpecificItems()) {
             if (institution != null) {
                 sql += " and c.institution=:ins ";
                 m.put("ins", institution);
@@ -1081,7 +1079,7 @@ public class InvestigationController implements Serializable {
         JsfUtil.addSuccessMessage("Successfully Deleted");
         selectedInvestigations = null;
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Reports/Check Entered Data/Investigation/Investigation List(Delete selected items)(/faces/dataAdmin/lab/investigation_list.xhtml)");
+        
     }
 
     public void unDeleteSelectedItems() {
@@ -1103,7 +1101,7 @@ public class InvestigationController implements Serializable {
         JsfUtil.addSuccessMessage("Successfully Deleted");
         selectedInvestigations = null;
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Reports/Check Entered Data/Investigation/Investigation List(un_Delete selected items)(/faces/dataAdmin/lab/investigation_list.xhtml)");
+        
     }
 
     public void markSelectedActive() {
@@ -1124,7 +1122,7 @@ public class InvestigationController implements Serializable {
         JsfUtil.addSuccessMessage("Successfully Actived");
         selectedInvestigations = null;
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Reports/Check Entered Data/Investigation/Investigation List(Active selected)(/faces/dataAdmin/lab/investigation_list.xhtml)");
+        
 
     }
 
@@ -1146,7 +1144,7 @@ public class InvestigationController implements Serializable {
         JsfUtil.addSuccessMessage("Successfully Inactived");
         selectedInvestigations = null;
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Reports/Check Entered Data/Investigation/Investigation List(In-Active selected)(/faces/dataAdmin/lab/investigation_list.xhtml)");
+        
     }
 
     public Institution getInstitution() {
@@ -1172,7 +1170,7 @@ public class InvestigationController implements Serializable {
     }
 
 //    public List<Investigation> completeDepartmentItem(String qry) {
-//        if (getSessionController().getLoggedPreference().isInstitutionSpecificItems()) {
+//        if (getSessionController().getApplicationPreference().isInstitutionSpecificItems()) {
 //            String sql;
 //            Map m = new HashMap();
 //            m.put("qry", "'%" + qry.toUpperCase() + "%'");
@@ -1194,7 +1192,7 @@ public class InvestigationController implements Serializable {
 //        }
 //    }
     public List<Investigation> completeDepartmentItem(String qry) {
-        if (getSessionController().getLoggedPreference().isInstitutionSpecificItems()) {
+        if (getSessionController().getApplicationPreference().isInstitutionSpecificItems()) {
             String sql;
             Map m = new HashMap();
 //            m.put("qry", "'%" + qry.toUpperCase() + "%'");
@@ -1215,17 +1213,17 @@ public class InvestigationController implements Serializable {
         if (institution == null) {
             institution = getSessionController().getLoggedUser().getInstitution();
         }
-        return "/admin/lims/investigation";
+        return "/admin/lims/investigation?faces-redirect=true";
     }
 
     public String navigateToListInvestigation() {
         listAllIxs();
-        return "/admin/lims/investigation_list";
+        return "/admin/lims/investigation_list?faces-redirect=true";
     }
 
     public String navigateToManageReportTemplateNames() {
         listAllIxs();
-        return "/admin/lims/investigation_list";
+        return "/admin/lims/investigation_list?faces-redirect=true";
     }
 
     public void prepareAdd() {
@@ -1438,7 +1436,7 @@ public class InvestigationController implements Serializable {
             investigationWithInvestigationItemses.add(items);
         }
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Lab/Administration/Setup/report dynamic labels(/faces/lab/report_dynamic_lables.xhtml)");
+        
     }
 
     public List<InvestigationItemWithInvestigationItemValueFlags> fetchFlags(Investigation i) {
@@ -1719,7 +1717,7 @@ public class InvestigationController implements Serializable {
             itemWithFees.add(iwf);
         }
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Reports/Check Entered Data/Investigation/Investigation with fee (/faces/dataAdmin/report_entered_data.xhtml)");
+        
     }
 
     public class ItemWithFee {

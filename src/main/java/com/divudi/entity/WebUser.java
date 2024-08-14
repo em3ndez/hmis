@@ -7,6 +7,7 @@
  */
 package com.divudi.entity;
 
+import com.divudi.data.LoginPage;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -14,13 +15,14 @@ import java.util.Date;
 import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Temporal;
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  *
@@ -28,7 +30,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * Consultant (Health Informatics)
  */
 @Entity
-@XmlRootElement
+
 public class WebUser implements Serializable {
 
     static final long serialVersionUID = 1L;
@@ -99,6 +101,8 @@ public class WebUser implements Serializable {
     Staff staff;
 
     String code;
+    @Enumerated(EnumType.STRING)
+    private LoginPage loginPage;
 
     public Staff getStaff() {
         return staff;
@@ -352,5 +356,15 @@ public class WebUser implements Serializable {
     public void setCode(String code) {
         this.code = code;
     }
+
+    public LoginPage getLoginPage() {
+        return loginPage;
+    }
+
+    public void setLoginPage(LoginPage loginPage) {
+        this.loginPage = loginPage;
+    }
+
+  
 
 }

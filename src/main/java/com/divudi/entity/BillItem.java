@@ -38,6 +38,12 @@ import javax.persistence.Transient;
 @Entity
 public class BillItem implements Serializable {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    Long id;
+
+    static final long serialVersionUID = 1L;
+
     @OneToOne(mappedBy = "billItem", fetch = FetchType.LAZY)
     BillSession billSession;
 
@@ -47,10 +53,6 @@ public class BillItem implements Serializable {
     @OneToOne(mappedBy = "billItem", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private PharmaceuticalBillItem pharmaceuticalBillItem;
 
-    static final long serialVersionUID = 1L;
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    Long id;
     Double qty = 0.0;
     @Transient
     private Double absoluteQty;
@@ -59,6 +61,7 @@ public class BillItem implements Serializable {
     @ManyToOne
     PriceMatrix priceMatrix;
     double remainingQty;
+
     double Rate;
     double discountRate;
     double marginRate;
@@ -140,9 +143,23 @@ public class BillItem implements Serializable {
     @Transient
     private double tmpQty;
     @Transient
+    private double tmpFreeQty;
+    @Transient
     private UserStock transUserStock;
     @Transient
     private BillItem transBillItem;
+    @Transient
+    private double previousRecieveQtyInUnit;
+    @Transient
+    private double previousRecieveFreeQtyInUnit;
+
+    @Transient
+    private double totalHospitalFeeValueTransient;
+    @Transient
+    private double totalDoctorFeeValueTransient;
+    @Transient
+    private double totalProcedureFeeValueTransient;
+
     @OneToMany(mappedBy = "billItem", fetch = FetchType.EAGER)
     private List<BillFee> billFees = new ArrayList<>();
     @OneToMany(mappedBy = "referenceBillItem", fetch = FetchType.LAZY)
@@ -150,6 +167,8 @@ public class BillItem implements Serializable {
     private List<BillFee> proFees = new ArrayList<>();
     @OneToMany(mappedBy = "parentBillItem")
     private List<BillItem> chiledBillItems;
+
+    
 
     @Transient
     double transCCFee;
@@ -563,6 +582,11 @@ public class BillItem implements Serializable {
     }
 
     public Double getQty() {
+        if (qty == null) {
+            qty = 0.0;
+        } else if (qty == 0.0) {
+            qty = 0.0;
+        }
         return qty;
     }
 
@@ -656,6 +680,25 @@ public class BillItem implements Serializable {
 
         if (getPharmaceuticalBillItem() != null) {
             getPharmaceuticalBillItem().setQty((double) this.tmpQty);
+        }
+    }
+
+    public double getTmpFreeQty() {
+        if (getItem() instanceof Ampp || getItem() instanceof Vmpp) {
+            return tmpFreeQty / getItem().getDblValue();
+        } else {
+            return tmpFreeQty;
+        }
+    }
+
+    public void setTmpFreeQty(double tmpFreeQty) {
+        if (getItem() instanceof Ampp || getItem() instanceof Vmpp) {
+            this.tmpFreeQty = tmpFreeQty * getItem().getDblValue();
+        } else {
+            this.tmpFreeQty = tmpFreeQty;
+        }
+        if (getPharmaceuticalBillItem() != null) {
+            getPharmaceuticalBillItem().setFreeQty((double) this.tmpFreeQty);
         }
     }
 
@@ -852,5 +895,69 @@ public class BillItem implements Serializable {
         }
         return billFees;
     }
+
+    public double getPreviousRecieveQtyInUnit() {
+        return previousRecieveQtyInUnit;
+    }
+
+    public void setPreviousRecieveQtyInUnit(double previousRecieveQtyInUnit) {
+        this.previousRecieveQtyInUnit = previousRecieveQtyInUnit;
+    }
+
+    public double getPreviousRecieveFreeQtyInUnit() {
+        return previousRecieveFreeQtyInUnit;
+    }
+
+    public void setPreviousRecieveFreeQtyInUnit(double previousRecieveFreeQtyInUnit) {
+        this.previousRecieveFreeQtyInUnit = previousRecieveFreeQtyInUnit;
+    }
+
+    
+    
+    @Transient
+    private void calculateFeeTotals() {
+        totalHospitalFeeValueTransient = 0.0;
+        totalDoctorFeeValueTransient = 0.0;
+        totalProcedureFeeValueTransient = 0.0;
+        if (this.getBillFees() == null) {
+            return;
+        }
+        for (BillFee bf : this.getBillFees()) {
+            if (bf.getFee() == null) {
+                return;
+            }
+            if (bf.getFee().getFeeType() == null) {
+                return;
+            }
+            switch (bf.getFee().getFeeType()) {
+                case Staff:
+                    totalDoctorFeeValueTransient += bf.getFeeValue();
+                    break;
+                case OwnInstitution:
+                case Department:
+                case Service:
+                    totalHospitalFeeValueTransient += bf.getFeeValue();
+                default:
+                    throw new AssertionError();
+            }
+        }
+    }
+
+    public double getTotalHospitalFeeValueTransient() {
+        calculateFeeTotals();
+        return totalHospitalFeeValueTransient;
+    }
+
+    public double getTotalDoctorFeeValueTransient() {
+        calculateFeeTotals();
+        return totalDoctorFeeValueTransient;
+    }
+
+    public double getTotalProcedureFeeValueTransient() {
+        calculateFeeTotals();
+        return totalProcedureFeeValueTransient;
+    }
+
+   
 
 }

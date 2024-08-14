@@ -2,7 +2,6 @@ package com.divudi.bean.clinical;
 
 import com.divudi.bean.common.SessionController;
 
-import com.divudi.data.SymanticType;
 import com.divudi.data.clinical.DocumentTemplateType;
 import com.divudi.entity.WebUser;
 import com.divudi.entity.clinical.DocumentTemplate;
@@ -95,30 +94,38 @@ public class DocumentTemplateController implements Serializable {
 
     public String generateDefaultTemplateContents() {
         String contents = "";
-        contents = "{name}<br/>"
-                + "{age}<br/>"
-                + "{sex}<br/>"
-                + "{address}<br/>"
-                + "{phone}<br/>"
-                + "{medicines}<br/>"
-                + "{comments}<br/>"
-                + "{outdoor}<br/>"
-                + "{indoor}<br/>"
-                + "{ix}<br/>"
-                + "{pa}<br/>"
-                + "{past-dx}<br/>"
-                + "{routine-medicines}<br/>"
-                + "{allergies}<br/>"
-                + "{visit-date}<br/>"
-                + "{height}<br/>"
-                + "{weight}<br/>"
-                + "{bmi}<br/>"
-                + "{bp}<br/>"
-                + "{pr}<br/>"
-                + "{pfr}<br/>"
-                + "{rr}<br/>"
-                + "{sat}<br/>";
+        contents = " Name : {name}<br/>"
+                + "Age : {age}<br/>"
+                + "Sex : {sex}<br/>"
+                + "Address : {address}<br/>"
+                + "Phone : {phone}<br/>"
+                + "Medicines : {medicines}<br/>"
+                + "Comments : {comments}<br/>"
+                + "Outdoor : {outdoor}<br/>"
+                + "Indoor : {indoor}<br/>"
+                + "Order Tests For Visit : {ix}<br/>"
+                + "Order Tests For Visit Same Line: {ix-same-line}<br/>"
+                + "Plan of Action : {pa}<br/>"
+                + "Past Diagnosis : {past-dx}<br/>"
+                + "Visit Diagnosis : {visit-dx}<br/>"
+                + "Routine Medicines : {routine-medicines}<br/>"
+                + "Allergies : {allergies}<br/>"
+                + "Visit Date : {visit-date}<br/>"
+                + "Height : {height}<br/>"
+                + "Weight : {weight}<br/>"
+                + "BMI : {bmi}<br/>"
+                + "Blood Pressure : {bp}<br/>"
+                + "Pulse Rate : {pr}<br/>"
+                + "Blood Pressure and Pulse Rate Same Line: {bp-pr-sameLine}<br/>"
+                + "Peak Flow Rate : {pfr}<br/>"
+                + "Respiratory Rate : {rr}<br/>"
+                + "Saturation : {sat}<br/>"
+                + "Patient's Name : {patient_name}<br/>"
+                + "Patient's Age : {patient_age}<br/>"
+                + "Patient's PHN Number : {patient_phn_number}<br/>"
+                + "Patient's National Identity Card Number : {patient_nic}<br/>";
         return contents;
+
     }
 
     public String navigateToEditUserDocumentTemplates() {

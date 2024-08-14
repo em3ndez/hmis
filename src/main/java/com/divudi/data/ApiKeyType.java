@@ -5,11 +5,12 @@
 package com.divudi.data;
 
 /**
- *
  * @author buddhika
  */
 public enum ApiKeyType {
     Finance,
-    Clinical,
-    
+    Clinical, 
+    Config, 
+    General, 
+    Admin;
 }

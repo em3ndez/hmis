@@ -9,8 +9,8 @@
       >
 
     <h:body>
-        <ui:composition template="/resources/template/template.xhtml">
-            <ui:define name="content">
+        <ui:composition template="/payments/pay_index.xhtml">
+            <ui:define name="admin">
                 <h:panelGroup id="panbilledit" rendered="#{!staffPaymentBillController.printPreview}" styleClass="alignTop" >
                     <p:panel header="Staff Payments" >
                         <h:form>
@@ -50,20 +50,18 @@
 
                                 <p:commandButton ajax="false" value="Excel" styleClass="noPrintButton" icon="fa-solid fa-file-excel"
                                                  class="w-100 ui-button-success my-1 mx-2" >
-                                    <p:dataExporter type="xlsx" target="tblFee" fileName="Staff_Payment_Due_OPD"  />
+                                    <p:dataExporter type="xlsx" target=":#{p:resolveFirstComponentWithId('tblFee',view).clientId}" fileName="Staff_Payment_Due_OPD"  />
                                 </p:commandButton>
                             </h:panelGrid>
-                        </h:form>
-                        <h:form>
-                            <p:dataTable   id="tblFee" value="#{staffPaymentBillController.dueBillFees}"
+
+                            <p:dataTable   
+                                id="tblFee" value="#{staffPaymentBillController.dueBillFees}"
                                            selection="#{staffPaymentBillController.payingBillFees}"
                                            class="w-100"
-
-                                           rows="10"
                                            paginator="true" paginatorPosition="bottom"
                                            paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
                                            currentPageReportTemplate="{startRecord}-{endRecord} of {totalRecords} records"
-                                           rowsPerPageTemplate="5,10,{ShowAll|'All'}"
+                                           rowsPerPageTemplate="{ShowAll|'All'}"
                                            var="bf" rowKey="#{bf.id}" >
 
                                 <f:ajax  event="rowSelectCheckbox" execute="tblFee" listener="#{staffPaymentBillController.performCalculations()}"   
@@ -88,7 +86,7 @@
                                 </p:column>
                                 <p:column headerText="Bill Id">
                                     <f:facet name="header">
-                                        <h:outputLabel value="Bill ID"/>
+                                        <h:outputLabel value="Status"/>
                                     </f:facet>    
                                     <h:outputLabel value="#{bf.billItem.refunded}">
                                     </h:outputLabel>
@@ -96,7 +94,7 @@
 
                                 <p:column headerText="Payment Methord">
                                     <f:facet name="header">
-                                        <h:outputLabel value="Payment Methord"/>
+                                        <h:outputLabel value="Payment Method"/>
                                     </f:facet>    
                                     <h:outputLabel value="#{bf.bill.paymentMethod}">
                                     </h:outputLabel>
@@ -110,7 +108,6 @@
                                         <f:convertDateTime pattern="#{sessionController.applicationPreference.shortDateTimeFormat}" />
                                     </h:outputLabel>
                                 </p:column>
-
 
                                 <p:column headerText="Patient">
                                     <f:facet name="header">
@@ -126,7 +123,14 @@
                                     </f:facet>    
                                     <h:outputLabel value="#{bf.billItem.item.name}" />
                                 </p:column>
-
+                                
+                                <p:column headerText="Charge" >
+                                    <f:facet name="header">
+                                        <h:outputLabel value="Charge Type"/>
+                                    </f:facet>    
+                                    <h:outputLabel value="#{bf.fee.feeType}" />
+                                </p:column>
+                                
                                 <p:column headerText="Charge" >
                                     <f:facet name="header">
                                         <h:outputLabel value="Charge"/>
@@ -135,8 +139,6 @@
                                 </p:column>
 
                             </p:dataTable>
-
-
 
                             <p:panel id="pTotals"  >
                                 <f:facet name="header" >
@@ -168,20 +170,45 @@
                             </div>
                         </h:form>
 
-
                     </p:panel>
                 </h:panelGroup>
 
+                <h:form>
+                    <p:panel id="pnlprintBill" rendered="#{staffPaymentBillController.printPreview}">
 
-                <h:panelGroup id="pnlprintBill" rendered="#{staffPaymentBillController.printPreview}">
-                    <p:commandButton class="ui-button-success ml-2" icon="fas fa-plus" id="btnNewPayment" process="btnNewPayment" update="#{p:resolveFirstComponentWithId('panbilledit', view).clientId} :#{p:resolveFirstComponentWithId('pnlprintBill', view).clientId}" value="New Payment" action="#{staffPaymentBillController.newPayment}" oncomplete="location.reload(true);"
-                                     />
+                        <f:facet name="header">
+                            <div class="d-flex justify-content-between">
+                                <h:outputLabel value="Doctor/Staff Payment Voucher" class="mt-2"/>
+                                <div class="d-flex gap-2">
+                                    <p:commandButton 
+                                        class="ui-button-success" 
+                                        icon="fas fa-plus" 
+                                        id="btnNewPayment" 
+                                        ajax="false"
+                                        value="New Payment" 
+                                        action="#{staffPaymentBillController.newPayment}" 
+                                        oncomplete="location.reload(true);"
+                                        />
+                                    <p:commandButton 
+                                        value="Print" 
+                                        class="ui-button-info" 
+                                        icon="fas fa-print" 
+                                        ajax="false" 
+                                        action="#" >
+                                        <p:printer target="gpBillPreview" ></p:printer>
+                                    </p:commandButton>
+                                </div>
+                            </div>
 
-                    <bi:A4PaperPamentOPDDoctor controller="#{staffPaymentBillController}" bill="#{staffPaymentBillController.current}" dup="false"/>
-                </h:panelGroup>
+                        </f:facet>
 
+                        <h:panelGroup id="gpBillPreview" class="d-flex justify-content-center">
+                            <bi:A4PaperPamentOPDDoctor controller="#{staffPaymentBillController}" bill="#{staffPaymentBillController.current}" dup="false"/>
+                        </h:panelGroup>
+
+                    </p:panel>
+                </h:form>
             </ui:define>
-
 
         </ui:composition>
 

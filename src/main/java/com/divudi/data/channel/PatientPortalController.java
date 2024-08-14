@@ -1,16 +1,19 @@
 package com.divudi.data.channel;
 
 import com.divudi.bean.channel.BookingController;
+import com.divudi.bean.channel.BookingControllerViewScope;
+import com.divudi.bean.channel.ChannelBillController;
 import com.divudi.bean.common.CommonController;
 import com.divudi.bean.common.DoctorController;
 import com.divudi.bean.common.PatientController;
+import com.divudi.bean.common.PaymentGatewayController;
 import com.divudi.bean.common.SessionController;
 import com.divudi.bean.common.SmsController;
 import com.divudi.bean.common.util.JsfUtil;
+import com.divudi.bean.hr.StaffController;
 import com.divudi.data.BillType;
 import com.divudi.data.MessageType;
 import com.divudi.data.PaymentMethod;
-import com.divudi.data.SmsSentResponse;
 import com.divudi.ejb.ChannelBean;
 import com.divudi.ejb.SmsManagerEjb;
 import com.divudi.entity.Bill;
@@ -18,11 +21,11 @@ import com.divudi.entity.BillSession;
 import com.divudi.entity.Consultant;
 import com.divudi.entity.Patient;
 import com.divudi.entity.Payment;
+import com.divudi.entity.PaymentGatewayTransaction;
 import com.divudi.entity.ServiceSession;
 import com.divudi.entity.Sms;
 import com.divudi.entity.Speciality;
 import com.divudi.entity.Staff;
-import com.divudi.entity.UserPreference;
 import com.divudi.entity.channel.SessionInstance;
 import com.divudi.facade.BillFacade;
 import com.divudi.facade.BillSessionFacade;
@@ -32,7 +35,9 @@ import com.divudi.facade.ServiceSessionFacade;
 import com.divudi.facade.SessionInstanceFacade;
 import com.divudi.facade.SmsFacade;
 import com.divudi.facade.StaffFacade;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +45,7 @@ import java.util.Map;
 import java.util.Random;
 import javax.ejb.EJB;
 import javax.inject.Named;
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.SessionScoped;
 import javax.inject.Inject;
 import javax.persistence.TemporalType;
 import org.primefaces.model.ScheduleModel;
@@ -49,44 +54,9 @@ import org.primefaces.model.ScheduleModel;
  *
  * @author acer
  */
-@Named(value = "patientPortalController")
-@ApplicationScoped
-public class PatientPortalController {
-
-    private String PatientphoneNumber;
-    private boolean bookDoctor;
-    private Staff selectedConsultant;
-    private List<Bill> patientBills;
-    private List<Payment> PatientPayments;
-    private List<Payment> channelPayments;
-    private List<ServiceSession> docotrSessions;
-    private List<Staff> consultants;
-    private List<ServiceSession> channelSessions;
-    private Speciality selectedSpeciality;
-    private ServiceSession selectedChannelSession;
-    private Date date;
-    private List<SessionInstance> sessionInstances;
-    private Date sessionStartingDate;
-    private String messageForSms;
-    private String otp;
-    private String patientEnteredOtp;
-    private boolean otpVerify;
-    private List<Patient> searchedPatients;
-    private Patient patient;
-    private boolean searchedPatientIsNull;
-    private SessionInstance selectedSessionInstance;
-    private boolean selectPatient;
-    private boolean addNewProfile;
-    private boolean addNewPatient;
-    private boolean bookingCompleted;
-
-    private List<BillSession> pastBookings;
-    private List<Payment> pastPayments;
-
-
-    ScheduleModel eventModel;
-    Staff staff;
-    ServiceSession serviceSession;
+@Named
+@SessionScoped
+public class PatientPortalController implements Serializable {
 
     @EJB
     private StaffFacade staffFacade;
@@ -121,7 +91,93 @@ public class PatientPortalController {
     BookingController bookingController;
     @Inject
     CommonController commonController;
+    @Inject
+    PaymentGatewayController paymentGatewayController;
+    @Inject
+    ChannelBillController channelBillController;
+    @Inject
+    StaffController staffController;
+    @Inject
+    BookingControllerViewScope bookingControllerViewScope;
+
+    private String PatientphoneNumber;
+    private boolean bookDoctor;
+    private Staff selectedConsultant;
+    private List<Bill> patientBills;
+    private List<Payment> PatientPayments;
+    private List<Payment> channelPayments;
+    private List<ServiceSession> docotrSessions;
+    private List<Staff> consultants;
+    private List<ServiceSession> channelSessions;
+    private Speciality selectedSpeciality;
+    private ServiceSession selectedChannelSession;
+    private Date date;
+    private List<SessionInstance> sessionInstances;
+    private Date sessionStartingDate;
+    private String messageForSms;
+    private String otp;
+    private String patientEnteredOtp;
+    private boolean otpVerify;
+    private List<Patient> searchedPatients;
+    private Patient patient;
+    private boolean searchedPatientIsNull;
+    private SessionInstance selectedSessionInstance;
+    private boolean selectPatient;
+    private boolean addNewProfile;
+    private boolean addNewPatient;
+    private boolean bookingCompleted;
+
+    private List<BillSession> pastBookings;
+    private List<Payment> pastPayments;
+
+    private BillSession channelBookingBillSession;
+    private BillSession channelSettlingBillSession;
+
+    private PaymentGatewayTransaction currentPaymentGatewayTransaction;
+
+    ScheduleModel eventModel;
+    Staff staff;
+    ServiceSession serviceSession;
+
     private ChannelBean channelBean;
+
+    public String navigateBookingMenue() {
+        bookingControllerViewScope.fillBillSessions(selectedSessionInstance);
+        sessionInstances = null;
+        selectedConsultant = null;
+        selectedSpeciality = null;
+        selectedSessionInstance = null;
+        String oldURLMethord = commonController.getBaseUrl() + "faces/channel/patient_portal.xhtml";
+        return "/channel/patient_portal.xhtml";
+    }
+    
+    public String navigateToPayBooking(){
+        if (selectedSessionInstance != null) {
+        
+        bookingController.setPatient(patient);
+        bookingController.setPaymentMethod(PaymentMethod.OnlineSettlement);
+        bookingController.setStaff(selectedConsultant);
+        bookingController.setSelectedSessionInstance(selectedSessionInstance);
+        bookingController.setSelectedServiceSession(selectedChannelSession);
+        
+        double amount = selectedSessionInstance.getOriginatingSession().getTotal();
+        paymentGatewayController.setOrderAmount(String.valueOf(amount));
+        paymentGatewayController.setOrderId(String.valueOf(selectedSessionInstance.getId()));
+        paymentGatewayController.setPatient(patient);
+        paymentGatewayController.generateTemplateForOrderDescription();
+        paymentGatewayController.setSelectedSessioninstance(selectedSessionInstance);
+        return paymentGatewayController.createCheckoutSession();
+        }
+        return null;
+        
+    }
+
+    public void booking() {
+        if (selectedSessionInstance != null) {
+            channelBookingBillSession = bookingController.addChannelBookingForOnlinePayment();
+            bookingCompleted = false;
+        }     
+    }
 
     public List<BillSession> fillPastBookings() {
         pastBookings = null;
@@ -157,6 +213,7 @@ public class PatientPortalController {
         addNewProfile = false;
         bookingCompleted = false;
         addNewPatient = false;
+        sessionInstances = null;
     }
 
     public List<Staff> fillConsultants() {
@@ -179,46 +236,60 @@ public class PatientPortalController {
             m.put("sd", selectedConsultant);
             // m.put("wd", 10);
             channelSessions = serviceSessionFacade.findByJpql(sql, m);
-            System.out.println("channelSessions = " + channelSessions.size());
         }
 
     }
-    
-    public void addNewPatientAction(){
+
+    public void addNewPatientAction() {
         addNewPatient = true;
     }
-    
-    public void GoBackfromPatientAddAction(){
+
+    public void GoBackfromPatientAddAction() {
         addNewPatient = false;
     }
 
+//    public void addNewPatientAction() {
+//        addNewPatient = true;
+//    }
+//
+//    public void GoBackfromPatientAddAction() {
+//        addNewPatient = false;
+//    }
     public void fillSessionInstance() {
-        System.out.println("working");
-        if (channelSessions != null) {
-            sessionInstances = new ArrayList<>();
-            sessionStartingDate = new Date();
-            System.out.println("selectedConsultant = " + selectedConsultant.getName());
-            String jpql = "select i "
-                    + " from SessionInstance i "
-                    + " where i.originatingSession.staff=:os "
-                    + " and i.retired=:ret ";
+        sessionInstances = new ArrayList<>();
+        Date currentDate = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(currentDate);
+        calendar.add(Calendar.DAY_OF_MONTH, 2);
+        Map<String, Object> m = new HashMap<>();
+        StringBuilder jpql = new StringBuilder("select i from SessionInstance i where i.retired=:ret and i.originatingSession.excludeFromPatientPortal=:epp and i.sessionDate BETWEEN :cd AND :nextTwoDays");
 
-            Map m = new HashMap();
-            m.put("ret", false);
+        if (selectedConsultant != null) {
+            jpql.append(" and i.originatingSession.staff=:os");
             m.put("os", selectedConsultant);
-
-            sessionInstances = sessionInstanceFacade.findByJpql(jpql, m, TemporalType.DATE);
-            System.out.println("sessionInstances = " + sessionInstances.size());
         }
+
+        if (selectedSpeciality != null) {
+            List<Staff> staffListBySelectedSpeciality = staffController.getSpecialityStaff(selectedSpeciality);
+            jpql.append(" and i.originatingSession.staff in :staffs");
+            m.put("staffs", staffListBySelectedSpeciality);
+        }
+
+        m.put("ret", false);
+        m.put("epp", false);
+        m.put("cd", currentDate);
+        m.put("nextTwoDays", calendar.getTime());
+
+        sessionInstances = sessionInstanceFacade.findByJpql(jpql.toString(), m, TemporalType.DATE);
+        
+        for(SessionInstance s : sessionInstances){
+            bookingControllerViewScope.fillBillSessions(s);
+        }
+        
     }
 
     public void otpCodeConverter() {
         int codeSize = 4;
-//        if (sessionController.getCurrentPreference().getOtpIndexes() == null || sessionController.getCurrentPreference().getOtpIndexes() == "0") {
-//            codeSize = 4;
-//        }
-//        codeSize = Integer.parseInt(sessionController.getCurrentPreference().getOtpIndexes());
-
         String numbers = "0123456789";
         Random random = new Random();
         StringBuilder otpBuilder = new StringBuilder();
@@ -228,7 +299,6 @@ public class PatientPortalController {
             otpBuilder.append(numbers.charAt(index));
         }
         otp = otpBuilder.toString();
-        System.out.println("otp = " + otp);
     }
 
     public void sendOtp() {
@@ -244,16 +314,34 @@ public class PatientPortalController {
         e.setCreater(sessionController.getLoggedUser());
         e.setReceipientNumber(PatientphoneNumber);
         e.setSendingMessage("Your authentication code is " + otp);
-        e.setDepartment(getSessionController().getDepartment());
-        e.setInstitution(getSessionController().getInstitution());
         e.setPending(false);
         e.setOtp(otp);
         getSmsFacade().create(e);
-        SmsSentResponse sent = smsManager.sendSmsByApplicationPreference(e.getReceipientNumber(), e.getSendingMessage(), sessionController.getApplicationPreference());
-        e.setSentSuccessfully(sent.isSentSuccefully());
-        e.setReceivedMessage(sent.getReceivedMessage());
+        System.out.println("otp = " + otp);
+        Boolean sent = smsManager.sendSms(e);
+        if (sent) {
+            JsfUtil.addSuccessMessage("SMS Sent");
+        } else {
+            JsfUtil.addSuccessMessage("SMS Failed");
+        }
+        e.setSentSuccessfully(sent);
         getSmsFacade().edit(e);
-        JsfUtil.addSuccessMessage("SMS Sent");
+
+    }
+    
+    public Date getSessionStartDateTime(SessionInstance session) {
+        Calendar sessionDateTimeCal = Calendar.getInstance();
+        sessionDateTimeCal.setTime(session.getSessionDate()); // Assuming session has a getSessionDate method
+
+        Calendar sessionTimeCal = Calendar.getInstance();
+        sessionTimeCal.setTime(session.getSessionTime()); // Assuming session has a getSessionTime method
+
+        // Combine session date and time
+        sessionDateTimeCal.set(Calendar.HOUR_OF_DAY, sessionTimeCal.get(Calendar.HOUR_OF_DAY));
+        sessionDateTimeCal.set(Calendar.MINUTE, sessionTimeCal.get(Calendar.MINUTE));
+        sessionDateTimeCal.set(Calendar.SECOND, sessionTimeCal.get(Calendar.SECOND));
+
+        return sessionDateTimeCal.getTime();
     }
 
     public void findPatients() {
@@ -268,7 +356,6 @@ public class PatientPortalController {
             j = "select p from Patient p where p.retired=false and p.patientPhoneNumber=:pp";
             m.put("pp", PatientphoneNumberLong);
             searchedPatients = patientFacade.findByJpql(j, m);
-            System.out.println("searchedPatients = " + searchedPatients.size());
 
             if (searchedPatients == null || searchedPatients.isEmpty()) {
                 selectPatient = false;
@@ -282,14 +369,12 @@ public class PatientPortalController {
     }
 
     public void otpVerification() {
-        System.out.println("patientEnteredOtp = " + patientEnteredOtp);
         List<Sms> smss = new ArrayList<>();
         String j;
         Map m = new HashMap();
         j = "select s from Sms s where s.otp=:oc";
         m.put("oc", patientEnteredOtp);
         smss = smsFacade.findByJpql(j, m);
-        System.out.println("smss = " + smss.size());
         if (smss.isEmpty() || smss.size() > 1) {
             JsfUtil.addErrorMessage("Enter correct authentication code");
             return;
@@ -299,20 +384,18 @@ public class PatientPortalController {
         }
     }
 
-    public void addBooking() {
-        System.out.println("this = " + patient.getPerson().getName());
-        bookingController.setPatient(patient);
-        bookingController.setPaymentMethod(PaymentMethod.Credit);
-        bookingController.setStaff(selectedConsultant);
-        bookingController.setSelectedSessionInstance(selectedSessionInstance);
-        bookingController.setSelectedServiceSession(selectedChannelSession);
-        bookingController.add();
-        bookingController.sendSmsAfterBooking();
+    public void completeBooking() {
+        if (channelBookingBillSession == null) {
+            JsfUtil.addErrorMessage("No Chanel Booking Session. Please contact system administator");
+            return;
+        }
+        if (channelBookingBillSession.getPaidBillSession() != null) {
+            JsfUtil.addErrorMessage("This is already Paid");
+            return;
+        }
+        channelSettlingBillSession = channelBillController.settleCreditForOnlinePayments(channelBookingBillSession);
         bookingCompleted = true;
-        JsfUtil.addSuccessMessage("Your Booking Successfull");
     }
-    
-  
 
     public String getPatientphoneNumber() {
         return PatientphoneNumber;
@@ -568,7 +651,6 @@ public class PatientPortalController {
         this.addNewPatient = addNewPatient;
     }
 
-
     public boolean isBookingCompleted() {
         return bookingCompleted;
     }
@@ -593,5 +675,28 @@ public class PatientPortalController {
         this.pastPayments = pastPayments;
     }
 
+    public BillSession getChannelBookingBillSession() {
+        return channelBookingBillSession;
+    }
+
+    public void setChannelBookingBillSession(BillSession channelBookingBillSession) {
+        this.channelBookingBillSession = channelBookingBillSession;
+    }
+
+    public BillSession getChannelSettlingBillSession() {
+        return channelSettlingBillSession;
+    }
+
+    public void setChannelSettlingBillSession(BillSession channelSettlingBillSession) {
+        this.channelSettlingBillSession = channelSettlingBillSession;
+    }
+
+    public PaymentGatewayTransaction getCurrentPaymentGatewayTransaction() {
+        return currentPaymentGatewayTransaction;
+    }
+
+    public void setCurrentPaymentGatewayTransaction(PaymentGatewayTransaction currentPaymentGatewayTransaction) {
+        this.currentPaymentGatewayTransaction = currentPaymentGatewayTransaction;
+    }
 
 }

@@ -8,7 +8,7 @@
       >
 
     <h:body>
-        <ui:composition template="/reportCashier/report_cashier.xhtml">
+        <ui:composition template="/analytics/opd/index.xhtml">
             <ui:define name="subcontent">
                 <h:form>
  
@@ -60,7 +60,7 @@
                             <p:commandButton  
                                 value="Process" 
                                 ajax="false"
-                                action="#{billSearch.fillTransactionTypeSummery()}" 
+                                action="#{billSearch.processCashierBillSummery()}" 
                                 class="ui-button-warning" icon="fas fa-cogs">
                             </p:commandButton>
 

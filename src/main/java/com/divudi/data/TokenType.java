@@ -5,11 +5,13 @@
 package com.divudi.data;
 
 public enum TokenType {
+
     APPOINTMENT_TOKEN("Appointment Token"),
     WALK_IN_TOKEN("Walk-in Token"),
     PHARMACY_TOKEN("Pharmacy Token"),
     DIAGNOSTIC_TOKEN("Diagnostic Token"),
     PRIORITY_TOKEN("Priority Token"),
+    OPD_TOKEN("OPD Token"),
     SPECIAL_CLINIC_TOKEN("Special Clinic Token"),
     COUNTER_TOKEN("Counter Token");
 

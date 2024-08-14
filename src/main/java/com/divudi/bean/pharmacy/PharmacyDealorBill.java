@@ -267,7 +267,7 @@ public class PharmacyDealorBill implements Serializable {
             return true;
         }
 
-        if (getPaymentSchemeController().errorCheckPaymentMethod(getCurrent().getPaymentMethod(), getPaymentMethodData())) {
+        if (getPaymentSchemeController().checkPaymentMethodError(getCurrent().getPaymentMethod(), getPaymentMethodData())) {
             return true;
         }
 
@@ -339,7 +339,7 @@ public class PharmacyDealorBill implements Serializable {
         JsfUtil.addSuccessMessage("Bill Saved");
         printPreview = true;
         
-        commonController.printReportDetails(fromDate, toDate, startTime, "Pharmacy/Dealer Payments/Payments(/faces/dealorPayment/bill_dealor.xhtml)");
+        
     }
 
     public void settleBillAll() {
@@ -371,7 +371,7 @@ public class PharmacyDealorBill implements Serializable {
         JsfUtil.addSuccessMessage("Bill Saved");
         printPreview = true;
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Pharmacy/Dealer Payments/Payments/By dealer(/faces/dealorPayment/bill_dealor_all.xhtml)");
+        
     }
 
     private void saveBillItem() {

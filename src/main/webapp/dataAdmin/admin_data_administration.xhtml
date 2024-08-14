@@ -16,8 +16,32 @@
                         <h:form >
                             <p:panel header="Data Administration" >
                                 <p:accordionPanel>
-                                    <p:tab title="System Administrator Functions"  >
-                                        
+
+                                    <p:tab title="Report Templates" disabled="false" >
+                                        <div class="d-grid gap-2">
+                                            <p:commandButton 
+                                                value="Add New Template" 
+                                                ajax="false"
+                                                class="w-100 "
+                                                icon="fa fa-search"
+                                                action="#{reportTemplateController.navigateToAddNewReportTemplate()}" >
+                                            </p:commandButton>
+                                            <p:commandButton 
+                                                value="List Templates" 
+                                                ajax="false"
+                                                class="w-100 "
+                                                icon="fa fa-search"
+                                                action="#{reportTemplateController.navigateToReportTemplateList()}" >
+                                            </p:commandButton>
+
+                                        </div>
+
+                                    </p:tab>
+
+
+
+                                    <p:tab title="Lists"  >
+
                                         <div class="d-grid gap-2">
                                             <p:commandButton 
                                                 value="Search Any Bill" 
@@ -38,6 +62,15 @@
                                             </p:commandButton>
 
                                             <p:commandButton 
+                                                value="List All Payments"  
+                                                ajax="false"
+                                                icon="fa fa-list"
+                                                class="w-100"
+                                                action="#{searchController.toListAllPayments()}" 
+                                                rendered="#{webUserController.hasPrivilege('Search')}">
+                                            </p:commandButton>
+
+                                            <p:commandButton 
                                                 value="Downlods"
                                                 ajax="false"
                                                 class="w-100"
@@ -51,15 +84,31 @@
                                                 ajax="false"
                                                 icon="fa fa-phone"
                                                 class="w-100"
-                                                action="/dataAdmin/phone_number_convert" 
+                                                action="#{patientController.navigateToConvertOldPatientPhoneNumbers}" 
                                                 rendered="#{webUserController.hasPrivilege('Search')}">
                                             </p:commandButton>
                                         </div>
-                                        
+
                                     </p:tab>
-                                    
-                                    <p:tab title="System Administrator Functions" disabled="true" >
-                                        <p:panel >
+
+                                    <p:tab title="System Administrator Functions" disabled="false" >
+                                        <p:commandButton
+                                            ajax="false" 
+                                            action="#{dataAdministrationController.navigateToCheckMissingFields()}" 
+                                            value="Check Missing Fields"  
+                                            class="w-100"
+                                            />
+
+                                        <p:commandButton 
+                                            ajax="false"
+                                            action="#{itemController.makeAllItemsToAllowDiscounts()}"
+                                            rendered="true"
+                                            value="Make All OPD Services and Investigations to Allow Discounts" 
+                                            onclick="if (!confirm('Really want to do that?'))
+                                                        return false"/>
+
+
+                                        <p:panel rendered="false" >
                                             <h:outputLabel 
                                                 value="Very Dangerous Section." 
                                                 style="font-size: 20px; color: red; font-weight: 900;" ></h:outputLabel>
@@ -69,9 +118,14 @@
                                                 style="font-size: 20px; color: red; font-weight: 900;" ></h:outputLabel>
                                         </p:panel>
 
-                                        <p:panelGrid columns="2" >
+                                        <p:panelGrid columns="2" rendered="false">
 
-                                            <p:panelGrid columns="1"                     >
+                                            <p:panelGrid columns="1"  >
+
+
+
+
+
                                                 <p:commandLink ajax="false" action="#{dataAdministrationController.addBillFeesToProfessionalCancelBills()}" value="1. Add bill fees to professional fee cancel bills"  onclick="if (!confirm('Really want to do that?'))
                                                             return false"/>
                                                 <p:commandLink ajax="false" action="#{dataAdministrationController.removeAllBillsAndBillItems()}" value="2. Remove All Bills with Bill Items"  onclick="if (!confirm('Really want to do that?'))

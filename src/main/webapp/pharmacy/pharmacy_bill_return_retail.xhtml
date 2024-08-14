@@ -10,7 +10,6 @@
 
     <ui:define name="content">
         <h:form>
-            <h:outputStylesheet library="css" name="pharmacyA4.css"/>
             <h:panelGroup rendered="#{!saleReturnController.printPreview}" styleClass="alignTop" >
                 <p:panel >
                     <f:facet name="header" >
@@ -28,16 +27,14 @@
                                         event="change" />
                                 </p:selectOneMenu>
 
-                                <p:inputText value="#{saleReturnController.comment}" class="mx-2" id="comment"/>
-                                <p:watermark value="Comment" for="comment"/>
-
+                                <p:inputText value="#{saleReturnController.returnBill.comments}" class="mx-2" id="comment"/>
+                                
                                 <p:commandButton
                                     value="Return"
                                     action="#{saleReturnController.settle}"
                                     icon="fa-solid fa-rotate-left"
                                     ajax="false"
-                                    class="w-25"
-                                    rendered="#{webUserController.hasPrivilege('PharmacySaleReturn')}">
+                                    class="w-25">
                                 </p:commandButton>
 
                             </div>
@@ -45,7 +42,9 @@
                             <div class="d-flex mt-2" style="float: right;">
                                 <p:outputLabel  value="Recievable Amount" /> 
                                 <p:outputLabel  value=":" style="width: 30px; text-align: center;" /> 
-                                <p:outputLabel id="total"  value="#{saleReturnController.returnBill.total}" style="min-width: 30px; text-align: right;"/> 
+                                <p:outputLabel id="total"  value="#{saleReturnController.returnBill.total}" style="min-width: 30px; text-align: right;">
+                                    <f:convertNumber pattern="#,##0.00"/>
+                                </p:outputLabel> 
                             </div>
 
                         </div>
@@ -73,8 +72,18 @@
                         id="itemList" >  
 
                         <f:facet name="header">  
-                            Returning Item 
-                        </f:facet>  
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h:outputLabel value="Returning Item"></h:outputLabel>
+                                <p:commandButton  
+                                    value="Fill All" 
+                                    action="#{saleReturnController.fillReturningQty}" 
+                                    process="@this"
+                                    update="itemList :#{p:resolveFirstComponentWithId('total',view).clientId}"
+                                    class="ui-button-warning"
+                                    icon="fa-solid fa-fill">
+                                </p:commandButton>
+                            </div>
+                        </f:facet> 
 
                         <p:column headerText="Item Name" style="width:50px!important;">  
 
@@ -82,21 +91,25 @@
 
                         </p:column>  
 
-                        <p:column headerText="Ballance Qty in Unit" style="width:25px!important;"> 
+                        <p:column headerText="Balance Qty in Unit" style="width:25px!important;"> 
                             <h:outputText value="#{ph.pharmaceuticalBillItem.qty}" />                   
                         </p:column>  
 
                         <p:column headerText="Purchase Rate" style="width:25px!important;"> 
-                            <h:outputText value="#{ph.rate}"  />                        
+                            <h:outputText value="#{ph.rate}"  >
+                                <f:convertNumber pattern="#,##0.00"/>
+                            </h:outputText>                        
                         </p:column>                 
 
 
-                        <p:column headerText="Bathch No" style="width:25px!important;">                       
-                            <h:outputText value="#{ph.pharmaceuticalBillItem.stringValue}" />                        
+                        <p:column headerText="Batch No" style="width:25px!important;">                       
+                            <h:outputText value="#{ph.pharmaceuticalBillItem.stock.itemBatch.batchNo}" />                           
                         </p:column>  
 
                         <p:column headerText="Date of Expirey" style="width:25px!important;">                     
-                            <h:outputText value="#{ph.pharmaceuticalBillItem.doe}" /> 
+                            <h:outputText value="#{ph.pharmaceuticalBillItem.doe}" >
+                                <f:convertDateTime timeZone="Asia/Colombo" pattern="#{sessionController.applicationPreference.shortDateFormat}" ></f:convertDateTime>
+                            </h:outputText>  
                         </p:column>
 
 
@@ -113,44 +126,49 @@
 
             <p:panel rendered="#{saleReturnController.printPreview}">
                 <f:facet name="header" >
+                    <h:outputLabel value="Pharmacy Retail Sale - Return Items" />
                     <p:commandButton 
                         ajax="false" 
+                        style="float: right;"
                         action="pharmacy_search_sale_bill" 
                         value="Search Phrmacy Sale" 
                         icon="fa fa-search"
                         class="ui-button-warning"
                         actionListener="#{saleReturnController.makeNull}">
                     </p:commandButton>  
-                    
+
                     <p:commandButton 
                         value="Print " 
-                        class="ui-button-success mx-2"
+                        style="float: right;"
+                        class="ui-button-info mx-2"
                         icon="fa fa-print"
                         ajax="false" 
                         >
                         <p:printer target="gpBillPreview" ></p:printer>
                     </p:commandButton>
-                    
+                   
                 </f:facet>
+                <div>
+                     <p:outputLabel value="Paper Type" class="m-2"></p:outputLabel>
+                    <p:selectOneMenu value="#{sessionController.departmentPreference.pharmacyBillPaperType}" class="m-1" id='ph' style="width: 13em;">
+                        <f:selectItem itemLabel="Please Select Paper Type" />
+                        <f:selectItems value="#{enumController.paperTypes}" />
+                    </p:selectOneMenu>
+                    <p:commandButton ajax="false" icon="fa fa-sync-alt" class="ui-button" title="Redraw Bill"></p:commandButton>
+                </div>
 
                 <h:panelGroup   id="gpBillPreview"  > 
 
                     <h:panelGroup   id="gpBillPreviewSingle" rendered="true">                   
-                            <h:panelGroup rendered="true" > 
-                                <ph:saleBill bill="#{saleReturnController.returnBill}"></ph:saleBill>
-                            </h:panelGroup>
-                    </h:panelGroup>
-
-                    <h:panelGroup id="gpBillPreviewDouble" rendered="#{sessionController.loggedPreference.pharmacyBillPaperType eq 'PosPaper'}"> 
-                            <h:panelGroup     rendered="#{sessionController.loggedPreference.pharmacyBillPrabodha eq true}"> 
-                                <ph:saleBill_prabodha bill="#{saleReturnController.returnBill}"></ph:saleBill_prabodha>
-                            </h:panelGroup>
+                        <h:panelGroup rendered="#{sessionController.loggedPreference.pharmacyBillPaperType eq 'PosPaper'}"> 
+                            <ph:returnBill bill="#{saleReturnController.returnBill}"></ph:returnBill>
+                        </h:panelGroup>
                     </h:panelGroup>
 
                     <h:panelGroup id="gpBillPreviewFiveFive" rendered="#{sessionController.loggedPreference.pharmacyBillPaperType eq 'FiveFivePaper'}"> 
-                            <h:panelGroup rendered="#{sessionController.loggedPreference.pharmacyBillPrabodha eq false}" > 
-                                <ph:saleBill_five_five bill="#{saleReturnController.returnBill}"></ph:saleBill_five_five>
-                            </h:panelGroup>
+                        <h:panelGroup rendered="#{sessionController.loggedPreference.pharmacyBillPrabodha eq false}" > 
+                            <ph:saleBill_five_five bill="#{saleReturnController.returnBill}"></ph:saleBill_five_five>
+                        </h:panelGroup>
                     </h:panelGroup>
 
                 </h:panelGroup>

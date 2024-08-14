@@ -55,7 +55,7 @@
 
                                     <p:selectOneMenu class="mx-4 w-100" id="lstCc"   value="#{inwardStaffPaymentBillController.institution}" >
                                         <f:selectItem itemLabel="All Credit Companies"/>
-                                        <f:selectItems  value="#{creditCompanyController.creditCompanies}" var="cc" 
+                                        <f:selectItems  value="#{creditCompanyController.creditCompanies}" var="ccc"
                                                         itemValue="#{ccc}" itemLabel="#{ccc.name}"></f:selectItems>
                                     </p:selectOneMenu>
                                     <h:outputLabel  value="Speciality" ></h:outputLabel>
@@ -80,10 +80,7 @@
                             </div>
                         </div>
 
-                        <p:watermark for="fdate" value="From Date" />
-                        <p:watermark for="tdate" value="To Date" />
-                        <p:watermark for="acSpeciality" value="Speciality" />
-                        <p:watermark for="scStaff" value="Staff / Doctor" />
+                        
 
                         <h:panelGrid columns="4" class="my-4" >
                             <p:commandButton ajax="false" value="Fill By Paid Date" icon="fas fa-fill" class="ui-button-warning" action="#{inwardStaffPaymentBillController.fillDocPayingBillFeeByCreatedDate}"   />

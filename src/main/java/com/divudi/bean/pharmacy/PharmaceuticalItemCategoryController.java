@@ -10,7 +10,6 @@ package com.divudi.bean.pharmacy;
 
 import com.divudi.bean.common.SessionController;
 
-import com.divudi.entity.clinical.ClinicalEntity;
 import com.divudi.entity.pharmacy.PharmaceuticalItemCategory;
 import com.divudi.facade.PharmaceuticalItemCategoryFacade;
 import com.divudi.bean.common.util.JsfUtil;
@@ -136,6 +135,7 @@ public class PharmaceuticalItemCategoryController implements Serializable {
     private boolean errorCheck() {
         if (getCurrent() != null) {
             if (getCurrent().getDescription() == null || getCurrent().getDescription().isEmpty()) {
+                JsfUtil.addErrorMessage("Please Fill Desciption.");
                 return false;
             } else {
                 String sql;

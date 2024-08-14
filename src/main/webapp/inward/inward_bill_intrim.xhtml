@@ -48,10 +48,10 @@
                                 <p:column>
                                     #{myItem.currentPatientRoom.roomFacilityCharge.name}
                                 </p:column>
-                                
+
 
                             </p:autoComplete>   
-                            
+
                             <p:commandButton ajax="false"  
                                              value="Select" 
                                              class="ml-2"
@@ -100,15 +100,22 @@
                                     ajax="false"
                                     icon="fa fa-user"
                                     class="ui-button-warning  mx-1" 
-                                    action="#{patientController.navigateToOpdPatientProfile()}" 
-                                    />
+                                    action="#{patientController.navigateToOpdPatientProfile()}" >
 
+                                    <f:setPropertyActionListener 
+                                        value="#{bhtSummeryController.patientEncounter.patient}" 
+                                        target="#{patientController.current}" ></f:setPropertyActionListener>
+                                </p:commandButton>
                                 <p:commandButton 
                                     ajax="false"
                                     icon="fas fa-id-card"
                                     class="ui-button-secondary  mx-1" 
                                     action="#{bhtSummeryController.navigateToInpatientProfile()}" 
-                                    />
+                                    >
+                                    <f:setPropertyActionListener 
+                                        value="#{bhtSummeryController.patientEncounter}" 
+                                        target="#{admissionController.current}" ></f:setPropertyActionListener>
+                                </p:commandButton>
 
 
                             </div>
@@ -176,16 +183,19 @@
                                         <h:panelGrid columns="2">
                                             <p:outputLabel value="Discharge Time"/>
 
-                                            <p:calendar 
+                                            <p:datePicker 
                                                 value="#{bhtSummeryController.date}"
                                                 id="dischargeTimeStamp"
                                                 pattern="#{sessionController.applicationPreference.longDateTimeFormat}" 
-                                                class="mx-2">                               
+                                                class="mx-2"
+                                                showTime="true"
+                                                showButtonBar="true"
+                                                timeInput="true">                               
                                                 <!--                                                <f:ajax execute="@this" 
                                                                                                         render="sum tvPt tot"
                                                                                                         event="dateSelect" 
                                                                                                         listener="#{bhtSummeryController.checkDate}" />-->
-                                            </p:calendar> 
+                                            </p:datePicker>
                                         </h:panelGrid>
                                         <div class="d-flex justify-content-end my-2">
                                             <p:commandButton 
@@ -246,7 +256,7 @@
                                 <p:outputLabel value="Fees and Details" class="mx-2"/>
                             </f:facet>
                             <p:tabView  id="tvPt"  rendered="#{bhtSummeryController.patientEncounter ne null}" >                     
-                                <p:tab id="tabNewPt" title="Room Detail" >
+                                <p:tab id="tabNewPt" title="Room Details" >
 
                                     <p:dataTable  value="#{bhtSummeryController.patientRooms}" var="rm" style="min-width:10em;">
                                         <p:column headerText="Room">
@@ -266,18 +276,24 @@
                                                            rendered="#{rm.patientRoomClass eq 'class com.divudi.entity.inward.GuardianRoom'}"/>
                                         </p:column>
                                         <p:column headerText="Admission" style="min-width:10em;">
-                                            <p:calendar navigator="true"  
-                                                        id="roomAdmittedTimeStamp"
-                                                        value="#{rm.admittedAt}" 
-                                                        pattern="#{sessionController.applicationPreference.shortDateTimeFormat}"
-                                                        size="11"/>     
+                                            <p:datePicker   
+                                                id="roomAdmittedTimeStamp"
+                                                value="#{rm.admittedAt}" 
+                                                showTime="true"
+                                                showButtonBar="true"
+                                                timeInput="true"
+                                                pattern="#{sessionController.applicationPreference.shortDateTimeFormat}"
+                                                size="11"/>     
                                         </p:column>
                                         <p:column headerText="Discharge" style="min-width:10em;" >                                      
-                                            <p:calendar navigator="true"  
-                                                        id="roomDischargeTimeStamp"
-                                                        value="#{rm.dischargedAt}" 
-                                                        pattern="#{sessionController.applicationPreference.shortDateTimeFormat}"
-                                                        size="11"/> 
+                                            <p:datePicker   
+                                                showTime="true"
+                                                showButtonBar="true"
+                                                timeInput="true"
+                                                id="roomDischargeTimeStamp"
+                                                value="#{rm.dischargedAt}" 
+                                                pattern="#{sessionController.applicationPreference.shortDateTimeFormat}"
+                                                size="11"/> 
                                         </p:column>
                                         <p:column headerText="Room"   style="width: 5em; text-align: right;" >
                                             <h:outputLabel value="#{rm.calculatedRoomCharge}" style="text-align: center" >
@@ -320,21 +336,21 @@
                                                 <p:commandButton ajax="false" 
                                                                  icon="fa fa-check-square" 
                                                                  title="Discharge"
-                                                                 class="ui-button-warning me-1" 
+                                                                 class="ui-button-warning" 
                                                                  action="#{roomChangeController.dischargeWithCurrentTime(rm)}" />
 
                                                 <!-- Cancel Discharge Button -->
                                                 <p:commandButton ajax="false" 
                                                                  icon="fa fa-times-circle" 
                                                                  title="Cancel Discharge"
-                                                                 class="ui-button-warning"
+                                                                 class="ui-button-warning mx-2"
                                                                  action="#{roomChangeController.dischargeCancel(rm)}" />
                                                 <!-- Update Charges Button -->
                                                 <p:commandButton ajax="false" 
                                                                  icon="fa fa-pencil-square" 
                                                                  title="Update Charges"
                                                                  action="#{bhtSummeryController.updatePatientRoom(rm)}" 
-                                                                 class="ui-button-info me-1" /> <!-- me-1 for margin-right -->
+                                                                 class="ui-button-info" /> <!-- me-1 for margin-right -->
 
 
                                             </div>
@@ -347,7 +363,7 @@
                                 </p:tab>
 
 
-                                <p:tab id="tabTimed" title="Timed Service Detail"  >  
+                                <p:tab id="tabTimed" title="Timed Service Details"  >  
                                     <p:dataTable  value="#{bhtSummeryController.patientItems}" var="pt">
                                         <p:column headerText="Service Name">
                                             <h:outputLabel value="#{pt.item.name}"/>
@@ -369,7 +385,7 @@
                                                 <f:convertNumber pattern="#,##0.00"/>
                                             </h:outputLabel>
                                         </p:column>   
-                                        <p:column headerText="Creater" >
+                                        <p:column headerText="Creator" >
                                             <h:outputLabel value="#{pt.creater.webUserPerson.name}"/>     
                                             <br/>
                                             <h:panelGroup rendered="#{ti.retired}" >
@@ -392,7 +408,7 @@
                                     </p:dataTable>
                                 </p:tab>
 
-                                <p:tab id="tabSer" title="Service Detail"  >                            
+                                <p:tab id="tabSer" title="Service Details"  >                            
                                     <p:dataTable id="service" scrollable="true" scrollHeight="300" 
                                                  value="#{bhtSummeryController.departmentBillItems}" var="dep">
                                         <p:columnGroup type="header">
@@ -604,7 +620,7 @@
                                     </p:dataTable>
                                 </p:tab>
 
-                                <p:tab id="tabAdd" title="Out Side Charge Detail"  >
+                                <p:tab id="tabAdd" title="Out Side Charge Details"  >
                                     <p:dataTable    scrollable="true" scrollHeight="300" 
                                                     value="#{bhtSummeryController.additionalChargeBill}" var="bil"
                                                     rowStyleClass="#{((bil.billClass eq 'class com.divudi.entity.BilledBill')
@@ -683,7 +699,7 @@
 
 
 
-                                <p:tab id="tabPro" title="Professional Fee"  >
+                                <p:tab id="tabPro" title="Professional Fees"  >
                                     <p:dataTable  scrollable="true" scrollHeight="300"  
                                                   value="#{bhtSummeryController.profesionallFee}" var="pf"
                                                   rowStyleClass="#{pf.bill.billClass eq 'class com.divudi.entity.BilledBill' ? '':'noDisplayRow'}">
@@ -740,7 +756,7 @@
                                 </p:tab>
 
 
-                                <p:tab id="tabDoc" title="Assisting Fee"  >
+                                <p:tab id="tabDoc" title="Assisting Fees"  >
                                     <p:dataTable  scrollable="true" scrollHeight="300"  value="#{bhtSummeryController.doctorAndNurseFee}" var="pf"
                                                   rowStyleClass="#{pf.bill.billClass eq 'class com.divudi.entity.BilledBill' ? '':'noDisplayRow'}">
                                         <p:column headerText="Name">

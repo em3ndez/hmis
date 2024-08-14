@@ -46,6 +46,7 @@
                             id="lstSelect" 
                             class="w-100"
                             filter="true"
+                            filterMatchMode="contains"
                             value="#{ampController.current}" 
                             >
                             <f:selectItems 
@@ -73,7 +74,7 @@
                                 <h:outputText  value="Bar Code" class="w-100"></h:outputText>
                                 <p:inputText autocomplete="off"  value="#{ampController.current.barcode}"  class="w-100"></p:inputText>
 
-                                <h:outputText  value="Product" class="w-100"></h:outputText>
+                                <h:outputText  value="VMP (Product)" class="w-100"></h:outputText>
                                 <p:autoComplete  converter="vmp" 
                                                  completeMethod="#{vmpController.completeVmp}"
                                                  var="pta" itemLabel="#{pta.name}" 
@@ -110,11 +111,22 @@
                                 </p:autoComplete>      
 
                                 <h:outputText  value="Department Type" class="w-100"></h:outputText>
-                                <p:selectOneMenu  value="#{ampController.current.departmentType}" class="w-100">
+                                <p:selectOneMenu  
+                                    value="#{ampController.current.departmentType}" 
+                                    class="w-100"
+                                    filter="true"
+                                    filterMatchMode="contains">
                                     <f:selectItem itemLabel="Select" ></f:selectItem>
                                     <f:selectItems value="#{enumController.departmentType}" ></f:selectItems>
                                 </p:selectOneMenu>
-
+                                
+                                <h:outputText value="No of days to mark as Short Expiary" >
+                                </h:outputText>
+                                <p:inputText 
+                                    autocomplete="off"
+                                    class="w-100"
+                                    value="#{ampController.current.numberOfDaysToMarkAsShortExpiary}"
+                                    ></p:inputText>
 
 
                                 <h:outputText  value="Discount Allowed" class="w-100"></h:outputText>

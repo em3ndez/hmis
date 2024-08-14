@@ -9,7 +9,6 @@
 package com.divudi.bean.common;
 import com.divudi.bean.common.util.JsfUtil;
 import com.divudi.entity.Area;
-import com.divudi.entity.Institution;
 import com.divudi.facade.AreaFacade;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -78,14 +77,14 @@ public class AreaController implements Serializable {
 
     public List<Area> completeArea(String qry) {
         List<Area> list;
-        String sql;
-        HashMap hm = new HashMap();
-        sql = "select c from Area c "
+        String jpql;
+        HashMap params = new HashMap();
+        jpql = "select c from Area c "
                 + " where c.retired=false "
                 + " and (c.name) like :q "
                 + " order by c.name";
-        hm.put("q", "%" + qry.toUpperCase() + "%");
-        list = getFacade().findByJpql(sql, hm);
+        params.put("q", "%" + qry.toUpperCase() + "%");
+        list = getFacade().findByJpql(jpql, params);
 
         if (list == null) {
             list = new ArrayList<>();

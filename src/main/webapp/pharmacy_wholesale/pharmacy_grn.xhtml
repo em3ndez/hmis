@@ -14,7 +14,7 @@
             <h:panelGroup rendered="#{!grnController.printPreview}">
 
                 <h:panelGrid columns="7" style="min-width: 100%;">
-                    <h:outputLabel value="DEALOR"/>
+                    <h:outputLabel value="Supplier"/>
                     <p:autoComplete converter="deal" value="#{grnController.grnBill.fromInstitution}"
                                     completeMethod="#{dealerController.completeDealor}" 
                                     forceSelection="true"
@@ -28,7 +28,7 @@
                         <f:selectItem itemLabel="SelectPayment method"/>
                         <f:selectItems value="#{enumController.paymentMethodsForPo}"/>                     
                     </p:selectOneMenu>
-                    <p:commandButton  value="Settle" action="#{grnController.settle}"
+                    <p:commandButton  value="Settle" action="#{grnController.settleWholesale()}"
                                       
                                     ajax="false"  style="width: 150px; padding: 1px;border: 1px solid ; margin: auto;">
                     </p:commandButton>      
@@ -170,7 +170,7 @@
                     </p:column> 
 
 
-                    <p:column headerText="Bathch No" >  
+                    <p:column headerText="Batch No" >  
                         <p:cellEditor >
                             <f:facet name="output">
                                 <h:outputLabel value="#{bi.pharmaceuticalBillItem.stringValue}" id="txtBatch"/>

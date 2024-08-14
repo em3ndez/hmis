@@ -11,13 +11,11 @@ package com.divudi.bean.membership;
 import com.divudi.bean.common.SessionController;
 
 import com.divudi.entity.Institution;
-import com.divudi.entity.Patient;
 import com.divudi.entity.membership.MembershipScheme;
 import com.divudi.facade.MembershipSchemeFacade;
 import com.divudi.bean.common.util.JsfUtil;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -33,8 +31,8 @@ import javax.inject.Named;
 
 /**
  *
- * @author Dr. M. H. B. Ariyaratne, MBBS, MSc, MD(Health Informatics)
- * Acting Consultant (Health Informatics)
+ * @author Dr. M. H. B. Ariyaratne, MBBS, MSc, MD(Health Informatics) Acting
+ * Consultant (Health Informatics)
  */
 @Named
 @SessionScoped
@@ -51,37 +49,36 @@ public class MembershipSchemeController implements Serializable {
     String selectText = "";
     Institution lastInstitution;
 
-    public MembershipScheme fetchPatientMembershipScheme(Patient patient, boolean hasExpiary) {
-
-        MembershipScheme membershipScheme = null;
-        if (hasExpiary) {
-            if (patient != null
-                    && patient.getPerson() != null) {
-
-                Date fromDate = patient.getFromDate();
-                Date toDate = patient.getToDate();
-
-                if (fromDate != null && toDate != null) {
-                    Calendar fCalendar = Calendar.getInstance();
-                    fCalendar.setTime(fromDate);
-                    Calendar tCalendar = Calendar.getInstance();
-                    tCalendar.setTime(toDate);
-                    Calendar nCalendar = Calendar.getInstance();
-
-                    if (((fromDate.before(new Date()) && toDate.after(new Date())))
-                            || (fCalendar.get(Calendar.DATE) == nCalendar.get(Calendar.DATE) || tCalendar.get(Calendar.DATE) == nCalendar.get(Calendar.DATE))) {
-                        membershipScheme = patient.getPerson().getMembershipScheme();
-                    }
-                }
-            }
-        } else {
-            if (patient !=null && patient.getPerson()!=null && patient.getPerson().getMembershipScheme() != null) {
-                membershipScheme = patient.getPerson().getMembershipScheme();
-            }
-        }
-        return membershipScheme;
-    }
-
+//    public MembershipScheme fetchPatientMembershipScheme(Patient patient, boolean hasExpiary) {
+//
+//        MembershipScheme membershipScheme = null;
+//        if (hasExpiary) {
+//            if (patient != null
+//                    && patient.getPerson() != null) {
+//
+//                Date fromDate = patient.getFromDate();
+//                Date toDate = patient.getToDate();
+//
+//                if (fromDate != null && toDate != null) {
+//                    Calendar fCalendar = Calendar.getInstance();
+//                    fCalendar.setTime(fromDate);
+//                    Calendar tCalendar = Calendar.getInstance();
+//                    tCalendar.setTime(toDate);
+//                    Calendar nCalendar = Calendar.getInstance();
+//
+//                    if (((fromDate.before(new Date()) && toDate.after(new Date())))
+//                            || (fCalendar.get(Calendar.DATE) == nCalendar.get(Calendar.DATE) || tCalendar.get(Calendar.DATE) == nCalendar.get(Calendar.DATE))) {
+//                        membershipScheme = patient.getPerson().getMembershipScheme();
+//                    }
+//                }
+//            }
+//        } else {
+//            if (patient !=null && patient.getPerson()!=null && patient.getPerson().getMembershipScheme() != null) {
+//                membershipScheme = patient.getPerson().getMembershipScheme();
+//            }
+//        }
+//        return membershipScheme;
+//    }
     public List<MembershipScheme> completeMembershipScheme(String qry) {
         List<MembershipScheme> c;
         HashMap hm = new HashMap();
@@ -106,6 +103,11 @@ public class MembershipSchemeController implements Serializable {
         fillItems();
     }
 
+    public String navigateToMembershipScheme() {
+        prepareAdd();
+        return "/admin/pricing/membership/membership_scheme?faces-redirect=true";
+    }
+
     public void setSelectedItems(List<MembershipScheme> selectedItems) {
         this.selectedItems = selectedItems;
     }
@@ -120,14 +122,14 @@ public class MembershipSchemeController implements Serializable {
 
     public void saveSelected() {
 //        getCurrent().setInstitution(getSessionController().getInstitution());
-        if (getCurrent().getCode() == null || getCurrent().getCode().equals("")) {
-            JsfUtil.addErrorMessage("Please Select Code Like \"LM\"");
-            return;
-        }
-        if (getCurrent().getCode().length() > 2) {
-            JsfUtil.addErrorMessage("Please Set Code Using 2 Charactors");
-            return;
-        }
+//        if (getCurrent().getCode() == null || getCurrent().getCode().equals("")) {
+//            JsfUtil.addErrorMessage("Please Select Code Like \"LM\"");
+//            return;
+//        }
+//        if (getCurrent().getCode().length() > 2) {
+//            JsfUtil.addErrorMessage("Please Set Code Using 2 Charactors");
+//            return;
+//        }
         if (getCurrent().getId() != null && getCurrent().getId() > 0) {
             getFacade().edit(current);
             JsfUtil.addSuccessMessage("Updated Successfully.");
@@ -176,7 +178,6 @@ public class MembershipSchemeController implements Serializable {
     }
 
     public void delete() {
-
         if (current != null) {
             current.setRetired(true);
             current.setRetiredAt(new Date());
@@ -207,11 +208,10 @@ public class MembershipSchemeController implements Serializable {
         String j;
         j = "select s "
                 + " from MembershipScheme s "
-                + " where s.retired=false "
-                + " and s.institution=:ins "
+                + " where s.retired=:ret "
                 + " order by s.name";
         Map m = new HashMap();
-        m.put("ins", sessionController.getInstitution());
+        m.put("ret", false);
         items = getFacade().findByJpql(j, m);
     }
 
@@ -261,7 +261,7 @@ public class MembershipSchemeController implements Serializable {
                 return getStringKey(o.getId());
             } else {
                 throw new IllegalArgumentException("object " + object + " is of type "
-                        + object.getClass().getName() + "; expected type: " + MembershipSchemeController.class.getName());
+                        + object.getClass().getName() + "; expected type: " + MembershipScheme.class.getName());
             }
         }
     }
@@ -269,5 +269,4 @@ public class MembershipSchemeController implements Serializable {
     /**
      *
      */
-    
 }

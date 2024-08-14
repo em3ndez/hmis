@@ -1,4 +1,3 @@
-
 /*
  * Dr M H B Ariyaratne
  * buddhika.ari@gmail.com
@@ -9,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
  * @author Buddhika
  */
 public enum BillType {
@@ -21,6 +19,7 @@ public enum BillType {
     ChannelCreditFlow(null),
     OpdBathcBill,
     OpdBathcBillPre,
+    OpdProfessionalFeePayment,
     SurgeryBill,
     LabBill,
     CollectingCentreBill,
@@ -41,10 +40,15 @@ public enum BillType {
     AdmissionBill,
     CashRecieveBill,
     PettyCash,
+    PettyCashReturn,
+    IouIssue,
+    IouReturn,
     AgentPaymentReceiveBill,
     AgentCreditNoteBill,
     AgentDebitNoteBill,
     PatientPaymentReceiveBill,
+    PatientPaymentRefundBill,
+    PatientPaymentCanceldBill,
     CollectingCentrePaymentReceiveBill,
     CollectingCentreCreditNoteBill,
     CollectingCentreDebitNoteBill,
@@ -64,7 +68,7 @@ public enum BillType {
     StoreBhtIssue,
     StoreBhtPre,
     StoreIssue,
-    //    @Deprecated Piumi requested issue 60 
+    //    @Deprecated Piumi requested issue 60
     StoreTransferIssue,
     StoreTransferReceive,
     StoreTransferRequest,
@@ -92,6 +96,7 @@ public enum BillType {
     PharmacyAdjustmentWholeSaleRate,
     PharmacyAdjustmentPurchaseRate,
     PharmacyAdjustmentExpiryDate,
+    PharmacyAddtoStock,
     DrawerAdjustment,
     PharmacyMajorAdjustment,
     ChannelCash(ChannelCashFlow),
@@ -99,6 +104,8 @@ public enum BillType {
     ChannelAgent(ChannelCashFlow),
     ChannelOnCall(ChannelCreditFlow),
     ChannelStaff(ChannelCreditFlow),
+    ChannelResheduleWithOutPayment(ChannelCreditFlow),
+    ChannelResheduleWithPayment(ChannelCashFlow),
     //    @Deprecated need to payment bills for separately
     ChannelProPayment,
     ChannelAgencyPayment,
@@ -154,6 +161,7 @@ public enum BillType {
     FinancialReconciliationBill, // For reconciling all types of recorded transactions against actual bank statements and balances
     @Deprecated
     FinancialAuditingBill, // For broader auditing purposes, ensuring compliance with policies and regulatory requirements
+    StaffCreditSettle
     ;
 
     public String getLabel() {
@@ -182,15 +190,17 @@ public enum BillType {
                 return "Good Receive Note";
             case PharmacyGrnReturn:
                 return "Good Receive Note Return";
+            case PharmacyReturnWithoutTraising:
+                return "Pharmacy Return Without Traising";
             case PharmacyPurchaseBill:
-                return "Pharmacy Purchase";
+                return "Pharmacy Direct Purchase";
             case PurchaseReturn:
                 return "Pharmacy Purchase Return";
             case PharmacySale:
                 return "Pharmacy Sale Bill";
 
             case PharmacyPre:
-                return "Pharmacy Sale Bill (Pre)";
+                return "Pharmacy Sale Bill for Cashier";
             case PharmacyAdjustment:
                 return "Pharmacy Adjustment";
             case GrnPayment:
@@ -294,14 +304,14 @@ public enum BillType {
         this.parent = parent;
     }
 
-    private BillType(BillType parent) {
+    BillType(BillType parent) {
         this.parent = parent;
         if (this.parent != null) {
             this.parent.addChild(this);
         }
     }
 
-    private BillType() {
+    BillType() {
     }
 
     private final List<BillType> children = new ArrayList<>();
@@ -339,5 +349,4 @@ public enum BillType {
         }
         return false;
     }
-
 }

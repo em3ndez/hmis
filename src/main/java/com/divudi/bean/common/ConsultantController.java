@@ -9,12 +9,13 @@
 package com.divudi.bean.common;
 import com.divudi.bean.common.util.JsfUtil;
 import com.divudi.entity.Consultant;
+import com.divudi.entity.Doctor;
 import com.divudi.entity.Person;
 import com.divudi.entity.Speciality;
-import com.divudi.entity.Vocabulary;
 import com.divudi.facade.ConsultantFacade;
 import com.divudi.facade.PersonFacade;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -125,10 +126,7 @@ public class ConsultantController implements Serializable {
             headerRow.createCell(8).setCellValue("Speciality");
             headerRow.createCell(9).setCellValue("Registration");
             headerRow.createCell(10).setCellValue("Qualification");
-            headerRow.createCell(11).setCellValue("Refering Charge");
-            // Add more columns as needed
 
-            // Populate the data rows
             int rowNum = 1;
             for (Consultant consultant : items) {
                 Row row = sheet.createRow(rowNum++);
@@ -139,11 +137,9 @@ public class ConsultantController implements Serializable {
                 row.createCell(5).setCellValue(consultant.getPerson().getFax());
                 row.createCell(6).setCellValue(consultant.getPerson().getMobile());
                 row.createCell(7).setCellValue(consultant.getPerson().getAddress());
-
-                row.createCell(8).setCellValue(consultant.getSpeciality().getDescription());
+                row.createCell(8).setCellValue(consultant.getSpeciality().getName());
                 row.createCell(9).setCellValue(consultant.getRegistration());
                 row.createCell(10).setCellValue(consultant.getQualification());
-                row.createCell(11).setCellValue(consultant.getCharge());
             }
 
             // Set the response headers to initiate the download
@@ -254,6 +250,24 @@ public class ConsultantController implements Serializable {
         }
     }
 
+    
+    public List<Doctor> completeConsultant(String query) {
+        List<Doctor> suggestions;
+        String sql;
+        if (query == null) {
+            suggestions = new ArrayList<>();
+        } else {
+            sql = " select p from Consultant p "
+                    + " where p.retired=false "
+                    + " and ((p.person.name) like :q or (p.code) like :q) "
+                    + " order by p.person.name";
+            HashMap hm = new HashMap();
+            hm.put("q", "%" + query.toUpperCase() + "%");
+            suggestions = getFacade().findByJpql(sql, hm);
+        }
+        return suggestions;
+    }
+    
     public void setSelectText(String selectText) {
         this.selectText = selectText;
     }
@@ -314,6 +328,7 @@ public class ConsultantController implements Serializable {
         return items;
     }
     
+    @Deprecated
     public List<Consultant> completeConsultants() {
         if (items == null) {
             String temSql;

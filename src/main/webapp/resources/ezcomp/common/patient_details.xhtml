@@ -5,6 +5,7 @@
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
+
       xmlns:c="http://java.sun.com/jsp/jstl/core">
 
     <!-- INTERFACE -->
@@ -12,6 +13,7 @@
         <cc:attribute name="editable" type="java.lang.Boolean"  />
         <cc:attribute name="searchable" type="java.lang.Boolean" default="true" />
         <cc:attribute name="controller" type="com.divudi.bean.common.ControllerWithPatient"/>
+        <cc:attribute name="focus" type="java.lang.Boolean"  />
     </cc:interface>
 
     <!-- IMPLEMENTATION -->
@@ -28,7 +30,7 @@
                             rendered="#{patientController.quickSearchPatientList eq null or empty patientController.quickSearchPatientList}">
                             <h:outputText
                                 rendered="#{cc.attrs.controller.patient.id eq null}"
-                                value="New Patient Details" 
+                                value="Patient" 
                                 class="mx-4"
                                 >
                             </h:outputText>
@@ -42,22 +44,32 @@
                                     value="#{cc.attrs.controller.patientDetailsEditable}" 
                                     offIcon="pi pi-pencil" 
                                     onIcon="pi pi-eye"                                 
-                                    class="mx-2">
+                                    class="mx-2"
+                                    >
                                     <p:ajax 
                                         process="@this" 
                                         update="viewPatient editPatient btnDone edit" />
                                 </p:selectBooleanButton>
-                                <p:commandButton id="btnDone" alt="Save Patient Details" class="ui-button-success" icon="fas fa-check" action="#{patientController.saveSelected(cc.attrs.controller.patient)}" rendered="#{cc.attrs.controller.patientDetailsEditable}" />
+                                <p:commandButton id="btnDone" alt="Save Patient Details" class="ui-button-success" icon="fas fa-check" action="#{patientController.saveSelected(cc.attrs.controller.patient)}" rendered="#{cc.attrs.controller.patientDetailsEditable}" update=":#{p:resolveFirstComponentWithId('ptImp',view).clientId} " />
                             </h:panelGroup>
 
                         </h:panelGroup>
+                    </h:panelGroup>
+
+                    <h:panelGroup rendered="#{cc.attrs.focus}" >
+                        <p:focus id="focusIx" for="txtQuickSearchPhoneNumber" />
+                        <p:focus context="txtQuickSearchPhoneNumber"/>
+
 
                     </h:panelGroup>
+
 
                     <!-- Right aligned quick search -->
                     <h:panelGroup id="quickSearch" >
                         <h:panelGroup rendered="#{cc.attrs.searchable}" layout="block"  styleClass="form-inline">
+                            <p:focus  for="txtQuickSearchPhoneNumber" />
                             <p:inputText 
+                                autocomplete="off"
                                 id="txtQuickSearchPhoneNumber"
                                 value="#{patientController.quickSearchPhoneNumber}"
                                 placeholder="Phone Number"
@@ -71,7 +83,9 @@
                                 action="#{patientController.quickSearchPatientLongPhoneNumber(cc.attrs.controller)}" 
                                 process="btnSearchbyPhoneNo txtQuickSearchPhoneNumber"
                                 update="ptImp selectPatient editPatient viewPatient"
-                                styleClass="btn-sm mx-1"/>
+                                styleClass="btn-sm mx-1">
+                            </p:commandButton>
+                            <p:defaultCommand target="btnSearchbyPhoneNo"> </p:defaultCommand>
                             <p:commandButton 
                                 id="btnAddNewPatient"
                                 icon="fa fa-plus-circle" 
@@ -93,6 +107,9 @@
                         </p:column>
                         <p:column headerText="Phone Number">
                             #{ps.person.phone}
+                        </p:column>
+                        <p:column headerText="Mobile Number">
+                            #{ps.person.mobile}
                         </p:column>
                         <p:column>
                             <p:commandButton 
@@ -119,17 +136,18 @@
                                         <p:selectOneMenu 
                                             id="cmbTitle"
                                             class="form-control w-100"
+                                            requiredMessage="Please enter a title"
                                             value="#{cc.attrs.controller.patient.person.title}">
                                             <f:selectItem itemLabel="Select Title" />
                                             <f:selectItems value="#{opdBillController.title}" var="i"
                                                            itemLabel="#{i.label}" itemValue="#{i}"/>
-                                            <p:ajax process="cmbTitle" update="cmbSex" ></p:ajax>
                                             <p:ajax event="change" process="cmbTitle" update="cmbSex" ></p:ajax>
                                         </p:selectOneMenu>
                                     </div>
                                     <div class="col-md-9 p-1">
                                         <p:inputText 
 
+                                            requiredMessage="Please enter a name for the patient"
                                             autocomplete="off" 
                                             id="txtNewPtName" 
                                             placeholder="Enter the Name of the patient"
@@ -149,6 +167,7 @@
                                         <p:selectOneMenu 
                                             id="cmbSex" 
 
+                                            requiredMessage="Please select a gender"
                                             value="#{cc.attrs.controller.patient.person.sex}"
                                             class="form-control w-100">
                                             <f:selectItem itemLabel="Select Gender"/>
@@ -162,41 +181,43 @@
                                                     autocomplete="off" 
                                                     id="year" 
                                                     placeholder="Years"
-
+                                                    onfocus="this.select();"
                                                     value="#{cc.attrs.controller.patient.person.ageYearsComponent}"
                                                     class="form-control">
-                                                    <f:ajax event="blur" execute="@this" render="dpDob" />
+                                                    <f:ajax event="keyup" execute="@this" render="dpDob" />
                                                 </p:inputText>
                                             </div>
                                             <div class="col-md-2">
                                                 <p:inputText
-
+                                                    onfocus="this.select();"
                                                     autocomplete="off" id="month" placeholder="Months"
                                                     value="#{cc.attrs.controller.patient.person.ageMonthsComponent}"
                                                     class="form-control">
-                                                    <f:ajax event="blur" execute="@this"  render="dpDob"  />
+                                                    <f:ajax event="keyup" execute="@this"  render="dpDob"  />
                                                 </p:inputText>
                                             </div>
                                             <div class="col-md-2">
                                                 <p:inputText 
-
+                                                    onfocus="this.select();"
                                                     autocomplete="off" id="day" placeholder="Days"
                                                     value="#{cc.attrs.controller.patient.person.ageDaysComponent}"
                                                     class="form-control">
-                                                    <f:ajax event="blur" execute="@this"  render="dpDob" />
+                                                    <f:ajax event="keyup" execute="@this"  render="dpDob" />
                                                 </p:inputText>
                                             </div>
                                             <div class="col-md-6">
-                                                <p:datePicker 
-
+                                                <p:datePicker  
                                                     value="#{cc.attrs.controller.patient.person.dob}"
                                                     id="dpDob" 
                                                     class="w-100"
+                                                    yearNavigator="true"
+                                                    monthNavigator="true"
                                                     inputStyleClass="form-control"
+                                                    requiredMessage="Please select a date of birth"
                                                     pattern="#{sessionController.applicationPreference.longDateFormat}"
                                                     placeholder="Date of Birth (dd/mm/yyyy)"
                                                     >
-                                                    <f:ajax event="dateSelect" execute="@this" render="year month day" />
+                                                    <p:ajax event="dateSelect" process="@this" update="year month day" />
                                                 </p:datePicker>
                                             </div>
                                         </div>
@@ -207,11 +228,11 @@
                                     <div class="col-md-3 p-1">
                                         <p:inputText 
                                             id="txtMobile" 
-
                                             autocomplete="off" 
                                             placeholder="Mobile Number"
-                                            value="#{cc.attrs.controller.patient.person.mobile}"
+                                            value="#{cc.attrs.controller.patient.mobileNumberStringTransient}"
                                             class="form-control" 
+                                            requiredMessage="Please enter a Mobile Number"
                                             validatorMessage="Please enter valid Number">
                                             <c:if test="#{not empty sessionController.applicationPreference.mobileRegex}">
                                                 <f:validateRegex pattern="#{sessionController.applicationPreference.mobileRegex}"/>
@@ -221,10 +242,10 @@
                                     <div class="col-md-3 p-1">
                                         <p:inputText 
                                             id="txtPhone" 
-
+                                            requiredMessage="Please enter a Phone Number"
                                             autocomplete="off" 
                                             placeholder="Phone Number"
-                                            value="#{cc.attrs.controller.patient.person.phone}"
+                                            value="#{cc.attrs.controller.patient.phoneNumberStringTransient}"
                                             class="form-control" validatorMessage="Please enter valid Number">
                                             <c:if test="#{not empty sessionController.applicationPreference.mobileRegex}">
                                                 <f:validateRegex pattern="#{sessionController.applicationPreference.mobileRegex}"/>
@@ -233,7 +254,7 @@
                                     </div>
                                     <div class="col-md-3 p-1">
                                         <p:inputText 
-
+                                            requiredMessage="Please enter a Email"
                                             autocomplete="off" id="txtEmail" placeholder="Enter Email here"
                                             value="#{cc.attrs.controller.patient.person.email}"
                                             class="form-control"
@@ -241,13 +262,13 @@
                                             <c:if test="#{not empty sessionController.applicationPreference.emailRegex}">
                                                 <f:validateRegex pattern="#{sessionController.applicationPreference.emailRegex}"/>
                                             </c:if>
-
                                         </p:inputText>
                                     </div>
                                     <div class="col-md-3 p-1">
                                         <p:inputText 
                                             id="txtNic"
-
+                                            requiredMessage="Please enter a ID"
+                                            autocomplete="off"
                                             placeholder="National ID Number"
                                             value="#{cc.attrs.controller.patient.person.nic}"
                                             class="form-control"/>
@@ -255,19 +276,30 @@
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-md-8 p-1">
+                                    <div class="col-md-7 p-1">
                                         <p:inputText
                                             id="txtAddress"
-
+                                            autocomplete="off"
+                                            requiredMessage="Please enter an Address"
                                             placeholder="Address"
                                             value="#{cc.attrs.controller.patient.person.address}"
                                             class="form-control"/>
                                     </div>
-                                    <div class="col-md-4 p-1">
+
+                                    <h:panelGroup class="col-md-2 p-1" rendered="#{configOptionApplicationController.getBooleanValueByKey('Save the Patient with Patient Status')}">
+                                        <p:selectBooleanButton 
+                                            id="scbforigner"
+                                            value="#{cc.attrs.controller.patient.person.foreigner}"
+                                            offLabel="Patient is Local"
+                                            class="w-100"
+                                            onLabel="Patient is Forigner" >
+                                        </p:selectBooleanButton>
+                                    </h:panelGroup>
+
+                                    <div class="#{configOptionApplicationController.getBooleanValueByKey('Save the Patient with Patient Status')?'col-md-3 p-1':'col-md-5 p-1'}">
                                         <p:autoComplete 
-
                                             id="acNewPtArea" 
-
+                                            requiredMessage="Please select an Area"
                                             placeholder="Search &amp; Select Area"
                                             completeMethod="#{areaController.completeArea}"
                                             var="pta" itemLabel="#{pta.name}"
@@ -288,8 +320,10 @@
                                 <p:tooltip for="cmbTitle" value="Title"  showDelay="0" hideDelay="0"></p:tooltip>
                                 <p:tooltip for="acNewPtArea" value="Area"  showDelay="0" hideDelay="0"></p:tooltip>
                                 <p:tooltip for="txtEmail" value="Email"  showDelay="0" hideDelay="0"></p:tooltip>
-
-                                <p:tooltip for="year" value="#{cc.attrs.controller.patient.person.ageAsString}"  showDelay="0" hideDelay="0"></p:tooltip>
+                                <p:tooltip for="scbforigner" value="Mark Status"  showDelay="0" hideDelay="0"></p:tooltip>
+                                <p:tooltip for="year" value="Age- Years Component"  showDelay="0" hideDelay="0"></p:tooltip>
+                                <p:tooltip for="month" value="Age- Month Component"  showDelay="0" hideDelay="0"></p:tooltip>
+                                <p:tooltip for="day" value="Age- Days Component"  showDelay="0" hideDelay="0"></p:tooltip>
 
 
                             </h:panelGroup>
@@ -340,6 +374,23 @@
                             <h:outputLabel value=" : " class="mx-3"/>
                             <h:outputText value="#{cc.attrs.controller.patient.person.address}" />
 
+
+                            <h:outputLabel value="Patient Status " class="mx-3" rendered="#{configOptionApplicationController.getBooleanValueByKey('Save the Patient with Patient Status')}"/>
+                            <h:outputLabel value=" : " class="mx-3" rendered="#{configOptionApplicationController.getBooleanValueByKey('Save the Patient with Patient Status')}"/>
+                            <h:panelGroup rendered="#{configOptionApplicationController.getBooleanValueByKey('Save the Patient with Patient Status')}">
+                                <p:badge
+                                    value="#{cc.attrs.controller.patient.person.foreigner?'Patient is Forigner':'Patient is Local'}" 
+                                    severity="#{cc.attrs.controller.patient.person.foreigner?'warning':'success'}" 
+                                    styleClass="mr-2">
+                                </p:badge>
+                            </h:panelGroup>
+
+                            <h:outputLabel value="Account Balance " class="mx-3" rendered="#{cc.attrs.controller.patient.hasAnAccount}"/>
+                            <h:outputLabel value=" : " class="mx-3" rendered="#{cc.attrs.controller.patient.hasAnAccount}"/>
+                            <h:outputText value="#{cc.attrs.controller.patient.runningBalance}" rendered="#{cc.attrs.controller.patient.hasAnAccount}">
+                                <f:convertNumber pattern="#,##0.00" />
+                            </h:outputText>
+
                             <h:outputLabel value="Area " class="mx-3"/>
                             <h:outputLabel value=" : " class="mx-3"/>
                             <h:outputText value="#{cc.attrs.controller.patient.person.area.name}" />
@@ -351,6 +402,5 @@
             </h:panelGroup>
 
         </p:panel>
-
     </cc:implementation>
 </html>

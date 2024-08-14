@@ -7,7 +7,6 @@
  * (94) 71 5812399
  */
 package com.divudi.bean.common;
-import com.divudi.entity.Bill;
 import com.divudi.entity.ServiceSession;
 import com.divudi.facade.ServiceSessionFacade;
 import java.io.Serializable;
@@ -216,7 +215,6 @@ public class ServiceSessionController implements Serializable {
 
         @Override
         public Object getAsObject(FacesContext facesContext, UIComponent component, String value) {
-            System.out.println("getAsObject - value = " + value);
             if (value == null || value.length() == 0) {
                 return null;
             }

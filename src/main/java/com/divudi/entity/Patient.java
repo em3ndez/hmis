@@ -8,13 +8,13 @@ import com.divudi.java.CommonFunctions;
 import java.io.Serializable;
 import java.util.Date;
 import javax.persistence.Basic;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.Index;
 import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.PostLoad;
@@ -36,17 +36,17 @@ public class Patient implements Serializable {
     static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    //Main Properties
     Long id;
 
     private Long patientPhoneNumber;
-    @ManyToOne
+    private Long patientMobileNumber;
+    @ManyToOne(cascade = CascadeType.ALL)
     Person person;
-    //personaI dentification Number
+
     Integer pinNo;
-    //healthdentification Number
+
     Integer hinNo;
-    //Created Properties
+
     @ManyToOne
     Institution createdInstitution;
     @ManyToOne
@@ -114,11 +114,13 @@ public class Patient implements Serializable {
 
     @Transient
     Bill bill;
-    @Transient
-    CommonFunctions commonFunctions;
+
             
     @Transient
     private String phoneNumberStringTransient;
+    
+    @Transient
+    private String mobileNumberStringTransient;
 
     private Boolean cardIssues;
 
@@ -347,6 +349,8 @@ public class Patient implements Serializable {
         this.person = person;
     }
 
+    
+    
     public Integer getPinNo() {
         return pinNo;
     }
@@ -585,18 +589,42 @@ public class Patient implements Serializable {
         phoneNumberStringTransient = this.getPerson().getPhone();
         return phoneNumberStringTransient;
     }
+    
+    public String getMobileNumberStringTransient() {
+        if (this.getPerson() == null) {
+            return null;
+        }
+        mobileNumberStringTransient = this.getPerson().getMobile();
+        return mobileNumberStringTransient;
+    }
 
+    @Transient
     public void setPhoneNumberStringTransient(String phoneNumberStringTransient) {
         try {
             if (this.getPerson() == null) {
                 return;
             }
             this.getPerson().setPhone(phoneNumberStringTransient);
-            this.patientPhoneNumber = commonFunctions.removeSpecialCharsInPhonenumber(phoneNumberStringTransient);  
+            this.patientPhoneNumber = CommonFunctions.removeSpecialCharsInPhonenumber(phoneNumberStringTransient);  
             this.phoneNumberStringTransient = phoneNumberStringTransient;
         } catch (Exception e) {
         }
     }
+    
+    
+    @Transient
+    public void setMobileNumberStringTransient(String mobileNumberStringTransient) {
+        try {
+            if (this.getPerson() == null) {
+                return;
+            }
+            this.getPerson().setMobile(mobileNumberStringTransient);
+            this.patientMobileNumber = CommonFunctions.removeSpecialCharsInPhonenumber(mobileNumberStringTransient);  
+            this.mobileNumberStringTransient = mobileNumberStringTransient;
+        } catch (Exception e) {
+        }
+    }
+    
 
     public Long getPatientPhoneNumber() {
         return patientPhoneNumber;
@@ -605,5 +633,15 @@ public class Patient implements Serializable {
     public void setPatientPhoneNumber(Long patientPhoneNumber) {
         this.patientPhoneNumber = patientPhoneNumber;
     }
+
+    public Long getPatientMobileNumber() {
+        return patientMobileNumber;
+    }
+
+    public void setPatientMobileNumber(Long patientMobileNumber) {
+        this.patientMobileNumber = patientMobileNumber;
+    }
+    
+    
 
 }

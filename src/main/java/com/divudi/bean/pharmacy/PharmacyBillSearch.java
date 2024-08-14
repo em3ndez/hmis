@@ -7,7 +7,6 @@ package com.divudi.bean.pharmacy;
 import com.divudi.bean.common.BillBeanController;
 import com.divudi.bean.common.PriceMatrixController;
 import com.divudi.bean.common.SessionController;
-import com.divudi.bean.common.util.JsfUtil;
 import com.divudi.bean.common.WebUserController;
 import com.divudi.bean.inward.InwardBeanController;
 import com.divudi.bean.store.StoreBillSearch;
@@ -44,6 +43,7 @@ import com.divudi.facade.BillItemFacade;
 import com.divudi.facade.ItemBatchFacade;
 import com.divudi.facade.PharmaceuticalBillItemFacade;
 import com.divudi.bean.common.util.JsfUtil;
+import com.divudi.data.BillTypeAtomic;
 import com.divudi.java.CommonFunctions;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -85,6 +85,7 @@ public class PharmacyBillSearch implements Serializable {
     private boolean printPreview = false;
     private double refundAmount;
     String txtSearch;
+    private String comment;
     Bill bill;
     PaymentMethod paymentMethod;
     PaymentScheme paymentScheme;
@@ -141,6 +142,58 @@ public class PharmacyBillSearch implements Serializable {
     InwardBeanController inwardBean;
     @Inject
     PharmacySaleController pharmacySaleController;
+    
+    public String navigatePharmacyReprintPo(){
+        return "pharmacy_reprint_po?faces-redirect=true";
+    }
+    
+    public String cancelInwardPharmacyRequestBill(){
+        if (bill==null) {
+            JsfUtil.addErrorMessage("Not Bill Found !");
+            return "";
+        }
+        if (comment==null) {
+            JsfUtil.addErrorMessage("Provide Comment To Cancel !");
+            return "";
+        }
+        CancelledBill cb=pharmacyCreateCancelBill();
+        cb.setBillItems(getBill().getBillItems());
+        bill.setCancelled(true);
+        bill.setCancelledBill(cb);
+        billFacade.edit(bill);
+        return "/ward/ward_pharmacy_bht_issue_request_list_for_issue?faces-redirect=true";
+    }
+    
+    public String cancelInwardPharmacyRequestBillFromInward(){
+        if (bill==null) {
+            JsfUtil.addErrorMessage("Not Bill Found !");
+            return "";
+        }
+        if (comment==null) {
+            JsfUtil.addErrorMessage("Provide Comment To Cancel !");
+            return "";
+        }
+        CancelledBill cb=pharmacyCreateCancelBill();
+        cb.setBillItems(getBill().getBillItems());
+        bill.setCancelled(true);
+        bill.setCancelledBill(cb);
+        billFacade.edit(bill);
+        return "/ward/ward_pharmacy_bht_issue_request_bill_search?faces-redirect=true";
+    }
+    
+    public String cancelPharmacyTransferRequestBill(){
+        if (bill==null) {
+            JsfUtil.addErrorMessage("Not Bill Found !");
+            return "";
+        }
+        CancelledBill cb=pharmacyCreateCancelBill();
+        cb.setBillTypeAtomic(BillTypeAtomic.PHARMACY_TRANSFER_REQUEST_CANCELLED);
+        cb.setBillItems(getBill().getBillItems());
+        bill.setCancelled(true);
+        bill.setCancelledBill(cb);
+        billFacade.edit(bill);
+        return "/pharmacy/pharmacy_transfer_request_list?faces-redirect=true";
+    }
 
     public void markAsChecked() {
         if (bill == null) {
@@ -195,6 +248,11 @@ public class PharmacyBillSearch implements Serializable {
 
         if (checkIssueReturn(getBill())) {
             JsfUtil.addErrorMessage("Issue Bill had been Returned You can't cancell bill ");
+            return;
+        }
+        
+        if (getBill().getComments()==null || getBill().getComments().trim().equals("")){
+            JsfUtil.addErrorMessage("Please Enter Comments ");
             return;
         }
 
@@ -479,6 +537,83 @@ public class PharmacyBillSearch implements Serializable {
 
     }
 
+    private boolean errorsPresentOnPoBillCancellation() {
+        if (getBill().isCancelled()) {
+            JsfUtil.addErrorMessage("Already Cancelled. Can not cancel again");
+            return true;
+        }
+
+        if (getBill().isRefunded()) {
+            JsfUtil.addErrorMessage("Already Returned. Can not cancel.");
+            return true;
+        }
+
+        return false;
+    }
+
+    public String cancelPoBill() {
+        if (getSelectedBills() == null || getSelectedBills().isEmpty()) {
+            JsfUtil.addErrorMessage("Please select Bills");
+            return "";
+        }
+        if (getComment() == null || getComment().trim().equals("")) {
+            JsfUtil.addErrorMessage("Please enter a comment");
+            return "";
+        }
+        for (Bill selected : selectedBills) {
+            setBill(selected);
+            if (getBill() == null) {
+                JsfUtil.addErrorMessage("No bill");
+                continue;
+            }
+            if (getBill().getId() == null) {
+                JsfUtil.addErrorMessage("No Saved bill");
+                continue;
+            }
+
+            if (errorsPresentOnPoBillCancellation()) {
+                continue;
+            }
+
+            CancelledBill cancellationBill = pharmacyCreateCancelBill();
+            cancellationBill.setDeptId(getBillNumberBean().institutionBillNumberGenerator(getSessionController().getDepartment(), BillType.PharmacyPurchaseBill, BillClassType.CancelledBill, BillNumberSuffix.GRNCAN));
+            cancellationBill.setInsId(getBillNumberBean().institutionBillNumberGenerator(getSessionController().getInstitution(), BillType.PharmacyPurchaseBill, BillClassType.CancelledBill, BillNumberSuffix.GRNCAN));
+            cancellationBill.setBillTypeAtomic(BillTypeAtomic.MULTIPLE_PHARMACY_ORDER_CANCELLED_BILL);
+
+            if (cancellationBill.getId() == null) {
+                getBillFacade().create(cancellationBill);
+            }
+            getBill().setCancelled(true);
+            getBill().setCancelledBill(cancellationBill);
+            getBillFacade().edit(getBill());
+            JsfUtil.addSuccessMessage("Cancelled");
+
+        }
+        selectedBills = null;
+        return "";
+    }
+
+    public String navigateToViewPharmacyGrn() {
+        return "/pharmacy/pharmacy_reprint_grn?faces-redirect=true;";
+    }
+
+    public String navigateToViewPurchaseOrder() {
+        if (bill == null) {
+            JsfUtil.addErrorMessage("No Bill");
+            return "";
+        }
+        double tmp = 0;
+        for (BillItem b : bill.getBillItems()) {
+            if (b.getPharmaceuticalBillItem() == null) {
+                continue;
+            }
+            double tmp2 = (b.getPharmaceuticalBillItem().getQty() * b.getPharmaceuticalBillItem().getRetailRate());
+            tmp += tmp2;
+        }
+        bill.setTransTotalSaleValue(tmp);
+        return "/pharmacy/pharmacy_reprint_grn?faces-redirect=true";
+    }
+
     public WebUser getUser() {
         return user;
     }
@@ -760,7 +895,7 @@ public class PharmacyBillSearch implements Serializable {
                 + " b.referenceBill=:ref and b.referenceBill.cancelled=false ";
         HashMap hm = new HashMap();
         hm.put("ref", getBill());
-        hm.put("btp", BillType.PharmacyGrnBill);
+        hm.put("btp", BillType.PharmacyOrder);
         List<Bill> tmp = getBillFacade().findByJpql(sql, hm);
 
         if (!tmp.isEmpty()) {
@@ -840,8 +975,8 @@ public class PharmacyBillSearch implements Serializable {
         cb.setDepartment(getSessionController().getLoggedUser().getDepartment());
         cb.setInstitution(getSessionController().getInstitution());
 
-        cb.setComments(getBill().getComments());
-        cb.setPaymentMethod(paymentMethod);
+        cb.setComments(getComment());
+        cb.setBillTypeAtomic(BillTypeAtomic.PHARMACY_RETAIL_SALE_CANCELLED);
 
         return cb;
     }
@@ -866,6 +1001,7 @@ public class PharmacyBillSearch implements Serializable {
 
         cb.setComments(getBill().getComments());
         cb.setPaymentMethod(getPaymentMethod());
+        cb.setBillTypeAtomic(BillTypeAtomic.PHARMACY_RETURN_ITEMS_AND_PAYMENTS_CANCELLATION);
 
         return cb;
     }
@@ -1116,7 +1252,7 @@ public class PharmacyBillSearch implements Serializable {
             b.setPharmaceuticalBillItem(ph);
 
             if (b.getId() == null) {
-                getBillItemFacede().create(b);
+                getBillItemFacede().edit(b);
             }
 
             ph.setBillItem(b);
@@ -1166,7 +1302,7 @@ public class PharmacyBillSearch implements Serializable {
             b.setPharmaceuticalBillItem(ph);
 
             if (b.getId() == null) {
-                getBillItemFacede().create(b);
+                getBillItemFacede().edit(b);
             }
 
             ph.setBillItem(b);
@@ -1396,7 +1532,7 @@ public class PharmacyBillSearch implements Serializable {
             b.setPharmaceuticalBillItem(ph);
 
             if (b.getId() == null) {
-                getBillItemFacede().create(b);
+                getBillItemFacede().edit(b);
             }
 
             ph.setBillItem(b);
@@ -1700,12 +1836,10 @@ public class PharmacyBillSearch implements Serializable {
                 return;
             }
 
-
             if (checkDepartment(getBill())) {
                 return;
             }
             for (BillItem i : getBill().getBillItems()) {
-                System.out.println("i = " + i.getItem().getName());
                 i.getPharmaceuticalBillItem().setQty((double) (double) i.getQty());
                 if (i.getPharmaceuticalBillItem().getQty() == 0.0) {
                     continue;
@@ -1715,10 +1849,8 @@ public class PharmacyBillSearch implements Serializable {
                 i.setCreater(getSessionController().getLoggedUser());
                 //   i.getBillItem().setQty(i.getPharmaceuticalBillItem().getQty());
                 double value = i.getNetRate() * i.getQty();
-                System.out.println("value = " + value);
                 i.setGrossValue(0 - value);
                 i.setNetValue(0 - value);
-                System.out.println("i.getNet = " + i.getNetValue());
 
                 PharmaceuticalBillItem tmpPh = i.getPharmaceuticalBillItem();
                 i.setPharmaceuticalBillItem(null);
@@ -1730,19 +1862,14 @@ public class PharmacyBillSearch implements Serializable {
                 i.setPharmaceuticalBillItem(tmpPh);
                 getBillItemFacade().edit(i);
                 //   getPharmaceuticalBillItemFacade().edit(i.getPharmaceuticalBillItem());
-
                 //   getPharmaceuticalBillItemFacade().edit(i.getPharmaceuticalBillItem());
-                System.out.println("tmpPh = " + tmpPh.getBillItem().getItem().getName());
-                System.out.println("tmpPh.getStock() = " + tmpPh.getStock());
+                //   getPharmaceuticalBillItemFacade().edit(i.getPharmaceuticalBillItem());
                 getPharmacyBean().addToStock(tmpPh.getStock(), Math.abs(tmpPh.getQtyInUnit()), tmpPh, getSessionController().getDepartment());
 
                 //   i.getBillItem().getTmpReferenceBillItem().getPharmaceuticalBillItem().setRemainingQty(i.getRemainingQty() - i.getQty());
                 //   getPharmaceuticalBillItemFacade().edit(i.getBillItem().getTmpReferenceBillItem().getPharmaceuticalBillItem());
                 //      updateRemainingQty(i);
-               
             }
-
-       
 
         }
 
@@ -2986,6 +3113,14 @@ public class PharmacyBillSearch implements Serializable {
 
     public void setBillFeePaymentFacade(BillFeePaymentFacade billFeePaymentFacade) {
         this.billFeePaymentFacade = billFeePaymentFacade;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
 }

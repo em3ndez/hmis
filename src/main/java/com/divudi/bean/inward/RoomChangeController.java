@@ -12,7 +12,6 @@ import com.divudi.bean.common.SessionController;
 
 import com.divudi.data.inward.AdmissionTypeEnum;
 import com.divudi.entity.Patient;
-import com.divudi.entity.Person;
 import com.divudi.entity.inward.Admission;
 import com.divudi.entity.inward.GuardianRoom;
 import com.divudi.entity.inward.PatientRoom;
@@ -226,7 +225,7 @@ public class RoomChangeController implements Serializable {
             return;
         }
 
-        if (sessionController.getLoggedPreference().isInwardMoChargeCalculateInitialTime()) {
+        if (sessionController.getApplicationPreference().isInwardMoChargeCalculateInitialTime()) {
             if (errorCheck()) {
                 return;
             }
@@ -249,7 +248,7 @@ public class RoomChangeController implements Serializable {
     }
 
     public void addNewRoom() {
-        if (sessionController.getLoggedPreference().isInwardMoChargeCalculateInitialTime()) {
+        if (sessionController.getApplicationPreference().isInwardMoChargeCalculateInitialTime()) {
             if (errorCheck()) {
                 return;
             }

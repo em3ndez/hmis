@@ -14,10 +14,10 @@
                         <div class="row">
                             <div class="col-md-2">
                                 <h:outputLabel value="From Date"/>
-                                <p:calendar styleClass="dateTimePicker" id="fromDate" value="#{searchController.fromDate}" navigator="false" pattern="#{sessionController.applicationPreference.longDateTimeFormat}"  class="w-100" inputStyleClass="form-control" maxdate="#{commonController.currentDateTime}">      
+                                <p:calendar styleClass="dateTimePicker" id="fromDate" value="#{searchController.fromDate}" navigator="false" pattern="#{sessionController.applicationPreference.longDateTimeFormat}"  class="w-100" inputStyleClass="form-control" maxdate="#{commonController.endOfDayOnCurrentDate}">      
                                 </p:calendar>
                                 <h:outputLabel value="To Date"/>
-                                <p:calendar id="toDate" value="#{searchController.toDate}" navigator="false" pattern="#{sessionController.applicationPreference.longDateTimeFormat}"  class="w-100" inputStyleClass="form-control" maxdate="#{commonController.currentDateTime}">                                                                              
+                                <p:calendar id="toDate" value="#{searchController.toDate}" navigator="false" pattern="#{sessionController.applicationPreference.longDateTimeFormat}"  class="w-100" inputStyleClass="form-control" maxdate="#{commonController.endOfDayOnCurrentDate}">                                                                              
                                 </p:calendar>
                                 <p:spacer height="10"/>
                                 <div class="d-grid gap-2">
@@ -49,15 +49,22 @@
                                     <p:column headerText="No" styleClass="alignTop">
                                         <h:outputLabel value="#{i+1}"/>
                                     </p:column>
+                                    <p:column headerText="Status">
+                                        <h6>#{bill.cancelled}</h6>
+                                        <h6>#{bill.idStr}</h6>
+                                    </p:column>
                                     <p:column headerText="View">
-                                        <p:commandButton ajax="false" value="Pay" action="bill_payment_opd">
+                                        <p:commandButton ajax="false" value="Pay" action="#{billSearch.navigateToBillPaymentOpdBill()}"  disabled="#{bill.cancelledBill ne null}">
                                             <f:setPropertyActionListener value="#{bill}" target="#{billSearch.bill}"/>
                                             <f:setPropertyActionListener value="#{bill}" target="#{billController.opdBill}"/>
                                         </p:commandButton>
                                     </p:column>
                                     <p:column headerText="Bill No" >                                
                                         <h:outputLabel   value="#{bill.deptId}"/>
-                                    </p:column>                            
+                                    </p:column>          
+                                    <p:column headerText="Bill Type" >                                
+                                        <h:outputLabel   value="#{bill.billType}"/>
+                                    </p:column>  
                                     <p:column headerText="Billed For"  >                                
                                         <h:outputLabel value="#{bill.toInstitution.name} - #{bill.toDepartment.name}" />
                                     </p:column>

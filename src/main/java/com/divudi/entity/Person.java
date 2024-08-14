@@ -7,14 +7,12 @@
  */
 package com.divudi.entity;
 
-import com.divudi.bean.common.SessionController;
 import com.divudi.data.Sex;
 import com.divudi.data.Title;
 import com.divudi.entity.membership.MembershipScheme;
 import java.io.Serializable;
 import java.util.Date;
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -34,22 +32,18 @@ import org.joda.time.PeriodType;
 
 /**
  *
- * @author Dr. M. H. B. Ariyaratne, MBBS, MSc, MD(Health Informatics) Acting
+ * Author : Dr. M H B Ariyaratne, MBBS, MSc, MD(Health Informatics) Acting
  * Consultant (Health Informatics)
  */
 @Entity
 public class Person implements Serializable {
 
-    @OneToOne(mappedBy = "webUserPerson", cascade = CascadeType.ALL)
-    private WebUser webUser;
-
-    @Transient
-    boolean ageCalculated = false;
-
-    static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
+
+    static final long serialVersionUID = 1L;
+
     String name;
     String description;
     String nic;
@@ -58,11 +52,18 @@ public class Person implements Serializable {
     String email;
     String website;
     String mobile;
+    String phone;
     @Column(name = "TNAME")
     String fullName;
     @Column(name = "SNAME")
     String nameWithInitials;
-    String phone;
+
+    @OneToOne(mappedBy = "webUserPerson", cascade = CascadeType.ALL)
+    private WebUser webUser;
+
+    @Transient
+    boolean ageCalculated = false;
+
     String initials;
     String surName;
     String lastName;
@@ -71,7 +72,7 @@ public class Person implements Serializable {
     @Temporal(javax.persistence.TemporalType.TIMESTAMP)
     Date dob;
 
-    //Created Properties
+    // Created Properties
     @ManyToOne
     WebUser creater;
 
@@ -82,7 +83,7 @@ public class Person implements Serializable {
     @Temporal(javax.persistence.TemporalType.TIMESTAMP)
     Date editedAt;
 
-    //    Retairing properties
+    // Retiring properties
     boolean retired;
     @ManyToOne
     WebUser retirer;
@@ -90,13 +91,10 @@ public class Person implements Serializable {
     Date retiredAt;
     String retireComments;
     @ManyToOne
-
     Area area;
     @ManyToOne
-
     Institution institution;
     @ManyToOne
-
     Department department;
     @Enumerated(EnumType.STRING)
     Title title;
@@ -130,15 +128,16 @@ public class Person implements Serializable {
     @Transient
     String ageAsString;
     @Transient
+    private String ageAsShortString;
+    @Transient
     long ageInDays;
     @Transient
     int serealNumber;
     @Transient
     private String smsNumber;
 
-//    @Inject
-//    SessionController SessionController;
-
+    // @Inject
+    // SessionController SessionController;
     @PostConstruct
     public void init() {
         calAgeFromDob();
@@ -186,7 +185,7 @@ public class Person implements Serializable {
 
     public void calAgeFromDob() {
         ageAsString = "";
-        ageInDays = 0l;
+        ageInDays = 0L;
         if (getDob() == null) {
             return;
         }
@@ -215,6 +214,39 @@ public class Person implements Serializable {
         ageYearsComponent = years;
     }
 
+    public void calShortAgeFromDob() {
+        ageAsShortString = "";
+        ageInDays = 0L;
+        if (getDob() == null) {
+            return;
+        }
+
+        LocalDate ldDob = new LocalDate(getDob());
+        LocalDate currentDate = LocalDate.now();
+
+        Period period = new Period(ldDob, currentDate, PeriodType.yearMonthDay());
+
+        int years = period.getYears();
+        int months = period.getMonths();
+        int days = period.getDays();
+
+        if (years > 5) {
+            ageAsShortString = years + "Y";
+        } else if (years > 0) {
+            ageAsShortString = years + "Y" + months + "M";
+        } else if (months > 0) {
+            ageAsShortString = months + "M" + days + "d";
+        } else {
+            ageAsShortString = days + "d";
+        }
+
+        period = new Period(ldDob, currentDate, PeriodType.days());
+        ageInDays = (long) period.getDays();
+        ageDaysComponent = days;
+        ageMonthsComponent = months;
+        ageYearsComponent = years;
+    }
+
     public void calDobFromAge() {
         LocalDate currentDate = new LocalDate();
         LocalDate ldDob = currentDate.minusYears(ageYearsComponent).minusMonths(ageMonthsComponent).minusDays(ageDaysComponent);
@@ -229,31 +261,30 @@ public class Person implements Serializable {
         return ageAsString;
     }
 
+    public String getAgeAsShortString() {
+        calShortAgeFromDob();
+        if (ageAsShortString == null || ageAsShortString.trim().equals("")) {
+            ageAsShortString = "";
+        }
+        return ageAsShortString;
+    }
+
     public Long getAgeInDays() {
         return ageInDays;
     }
 
     public int getAgeMonthsComponent() {
-        if (ageCalculated == false) {
-            calAgeFromDob();
-            ageCalculated = true;
-        }
+        calAgeFromDob();
         return ageMonthsComponent;
     }
 
     public int getAgeDaysComponent() {
-        if (ageCalculated == false) {
-            calAgeFromDob();
-            ageCalculated = true;
-        }
+        calAgeFromDob();
         return ageDaysComponent;
     }
 
     public int getAgeYearsComponent() {
-        if (ageCalculated == false) {
-            calAgeFromDob();
-            ageCalculated = true;
-        }
+        calAgeFromDob();
         return ageYearsComponent;
     }
 
@@ -281,6 +312,7 @@ public class Person implements Serializable {
             temT = "";
         }
         nameWithTitle = temT + " " + getName();
+
         return nameWithTitle;
     }
 
@@ -320,21 +352,21 @@ public class Person implements Serializable {
         this.createdAt = createdAt;
     }
 
-//    public WebUser getEditer() {
-//        return editer;
-//    }
-//
-//    public void setEditer(WebUser editer) {
-//        this.editer = editer;
-//    }
-//
-//    public Date getEditedAt() {
-//        return editedAt;
-//    }
-//
-//    public void setEditedAt(Date editedAt) {
-//        this.editedAt = editedAt;
-//    }
+    // public WebUser getEditer() {
+    // return editer;
+    // }
+    //
+    // public void setEditer(WebUser editer) {
+    // this.editer = editer;
+    // }
+    //
+    // public Date getEditedAt() {
+    // return editedAt;
+    // }
+    //
+    // public void setEditedAt(Date editedAt) {
+    // this.editedAt = editedAt;
+    // }
     public WebUser getCreater() {
         return creater;
     }
@@ -405,6 +437,31 @@ public class Person implements Serializable {
 
     public void setRetirer(WebUser retirer) {
         this.retirer = retirer;
+    }
+
+    @Transient
+    public String getShortenedName() {
+        if (name == null || name.trim().isEmpty()) {
+            return "";
+        }
+        String[] words = name.trim().split("\\s+");
+        StringBuilder shortenedName = new StringBuilder();
+
+        for (String word : words) {
+            if (word.length() > 6) {
+                word = word.substring(0, 6);
+            }
+            shortenedName.append(capitalize(word)).append(" ");
+        }
+
+        return shortenedName.toString().trim();
+    }
+
+    private String capitalize(String word) {
+        if (word == null || word.isEmpty()) {
+            return word;
+        }
+        return word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
     }
 
     @Override
@@ -611,23 +668,16 @@ public class Person implements Serializable {
     }
 
     public String getSmsNumber() {
-        if (smsNumber != null) {
-            return smsNumber;
-        }
-        if (this.getMobile() == null && this.getPhone() == null) {
-            smsNumber = "";
-        } else if (this.getPhone() != null && this.getMobile() == null) {
-            smsNumber = this.getPhone();
-        } else if (this.getMobile() != null && this.getPhone() == null) {
-            smsNumber = this.getMobile();
+        if (StringUtils.isNotBlank(mobile)) {
+            return mobile;
+        } else if (StringUtils.isNotBlank(phone)) {
+            return phone;
         } else {
-            smsNumber = this.getMobile();
+            return "";
         }
-        return smsNumber;
     }
 
     public void setSmsNumber(String smsNumber) {
         this.smsNumber = smsNumber;
     }
-
 }

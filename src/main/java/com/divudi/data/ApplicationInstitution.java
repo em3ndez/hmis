@@ -1,6 +1,7 @@
 package com.divudi.data;
 
 public enum ApplicationInstitution {
+
     Ruhuna("Ruhuna Hospital"),
     Cooperative("Cooperative Clinic"),
     Arogya("Arogya Health Center"),
@@ -11,11 +12,12 @@ public enum ApplicationInstitution {
     BMS("BMS Clinic"),
     Digasiri("Digasiri Health Center"),
     Probhodha("Probhodha Medical Center"),
+    Sethma("Sethma Hospital"),
     Rmh("RMH Hospital");
 
     private final String label;
 
-    private ApplicationInstitution(String label) {
+    ApplicationInstitution(String label) {
         this.label = label;
     }
 

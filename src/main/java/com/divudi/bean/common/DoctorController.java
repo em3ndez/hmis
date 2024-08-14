@@ -7,13 +7,12 @@
  * (94) 71 5812399
  */
 package com.divudi.bean.common;
+
 import com.divudi.bean.common.util.JsfUtil;
 import com.divudi.data.Title;
-import com.divudi.entity.Consultant;
 import com.divudi.entity.Doctor;
 import com.divudi.entity.Person;
 import com.divudi.entity.Speciality;
-import com.divudi.entity.Vocabulary;
 import com.divudi.facade.DoctorFacade;
 import com.divudi.facade.PersonFacade;
 import java.io.Serializable;
@@ -63,6 +62,17 @@ public class DoctorController implements Serializable {
     List<Doctor> doctors;
     Speciality speciality;
 
+    public Doctor getDoctorsByName(String name) {
+        String jpql = "select d "
+                + " from Doctor d "
+                + " where d.retired=:ret "
+                + " and d.person.name=:name";
+        Map m = new HashMap();
+        m.put("ret", false);
+        m.put("name", name);
+        return getFacade().findFirstByJpql(jpql, m);
+    }
+
     public List<Doctor> listDoctors(Speciality speciality) {
         List<Doctor> suggestions;
         String sql;
@@ -96,6 +106,8 @@ public class DoctorController implements Serializable {
         return suggestions;
     }
 
+   
+
     public void listDoctors() {
         Date startTime = new Date();
 
@@ -103,11 +115,26 @@ public class DoctorController implements Serializable {
         temSql = "SELECT d FROM Doctor d where d.retired=false ";
         doctors = getFacade().findByJpql(temSql);
 
-        commonController.printReportDetails(startTime, startTime, startTime, "All doctor Search(/faces/inward/report_all_doctors.xhtml)");
-
     }
 
     public List<Doctor> getSelectedItems() {
+        if (selectedItems == null) {
+            selectedItems = new ArrayList<>();
+        }
+        return selectedItems;
+    }
+
+    public String navigateToDoctorsIncludingConsultants() {
+        fillDoctorsIncludingConsultants();
+        return "/admin/staff/doctors_including_consultants?faces-redirect=true";
+    }
+
+    public String navigateToDoctorsExcludingConsultants() {
+        fillDoctorsExcludingConsultants();
+        return "/admin/staff/doctors_excluding_consultants?faces-redirect=true";
+    }
+
+    private void fillDoctorsIncludingConsultants() {
         String j;
         j = "select c "
                 + " from Doctor c "
@@ -116,28 +143,18 @@ public class DoctorController implements Serializable {
         Map m = new HashMap();
         m.put("ret", false);
         selectedItems = getFacade().findByJpql(j, m);
-//        String sql = "";
-//        HashMap hm = new HashMap();
-//        hm.put("class", Consultant.class);
-//        if (selectText.trim().equals("")) {
-//            sql = "select c from Doctor c "
-//                    + " where c.retired=false "
-//                    + " and type(c)!=:class "
-//                    + "order by c.person.name";
-//
-//        } else {
-//            sql = "select c from Doctor c "
-//                    + "where c.retired=false "
-//                    + " and type(c)!=:class "
-//                    + " and (c.person.name) like :q "
-//                    + " order by c.person.name";
-//
-//            hm.put("q", "%" + getSelectText().toUpperCase() + "%");
-//        }
-//
-//        selectedItems = getFacade().findByJpql(sql, hm);
+    }
 
-        return selectedItems;
+    private void fillDoctorsExcludingConsultants() {
+        String j;
+        j = "select c "
+                + "from Doctor c "
+                + "where c.retired = :ret "
+                + "and TYPE(c) != Consultant "
+                + "order by c.person.name";
+        Map<String, Object> m = new HashMap<>();
+        m.put("ret", false);
+        selectedItems = getFacade().findByJpql(j, m);
     }
 
     public void prepareAdd() {
@@ -177,7 +194,7 @@ public class DoctorController implements Serializable {
                 row.createCell(3).setCellValue(doctor.getPerson().getMobile());
                 row.createCell(4).setCellValue(doctor.getPerson().getAddress());
                 row.createCell(5).setCellValue(doctor.getCode());
-                row.createCell(6).setCellValue(doctor.getSpeciality().getDescription());
+                row.createCell(6).setCellValue(doctor.getSpeciality().getName());
                 row.createCell(7).setCellValue(doctor.getRegistration());
                 row.createCell(8).setCellValue(doctor.getQualification());
                 row.createCell(9).setCellValue(doctor.getCharge());
@@ -214,6 +231,7 @@ public class DoctorController implements Serializable {
         //  getItems();
         current = null;
         getCurrent();
+        fillDoctorsExcludingConsultants();
     }
 
     public void setSelectedItems(List<Doctor> selectedItems) {
@@ -230,6 +248,33 @@ public class DoctorController implements Serializable {
 
     public Title[] getTitle() {
         return Title.values();
+    }
+
+    public void save(Doctor doc) {
+        if (doc == null) {
+            return;
+        }
+        if (doc.getPerson() == null) {
+            return;
+        }
+        if (doc.getPerson().getName().trim().equals("")) {
+            return;
+        }
+        if (doc.getSpeciality() == null) {
+            return;
+        }
+        if (doc.getPerson().getId() == null || doc.getPerson().getId() == 0) {
+            getPersonFacade().create(doc.getPerson());
+        } else {
+            getPersonFacade().edit(doc.getPerson());
+        }
+        if (doc.getId() != null && doc.getId() > 0) {
+            getFacade().edit(doc);
+        } else {
+            doc.setCreatedAt(new Date());
+            doc.setCreater(getSessionController().getLoggedUser());
+            getFacade().create(doc);
+        }
     }
 
     public void saveSelected() {
@@ -266,6 +311,7 @@ public class DoctorController implements Serializable {
         current = new Doctor();
         recreateModel();
         // getItems();
+        fillDoctorsExcludingConsultants();
     }
 
     public void setSelectText(String selectText) {
@@ -341,6 +387,23 @@ public class DoctorController implements Serializable {
         this.speciality = speciality;
     }
 
+    public Doctor findDoctor(Long id) {
+        return getFacade().find(id);
+    }
+
+    public Doctor findDoctor(Person person) {
+        String jpql = "select d "
+                + " from Staff d "
+                + " where d.person = :person "
+                + " and d.retired = :ret";
+
+        Map<String, Object> m = new HashMap<>();
+        m.put("person", person);
+        m.put("ret", false);
+
+        return getFacade().findFirstByJpql(jpql, m);
+    }
+
     /**
      *
      */
@@ -379,7 +442,7 @@ public class DoctorController implements Serializable {
                 return getStringKey(o.getId());
             } else {
                 throw new IllegalArgumentException("object " + object + " is of type "
-                        + object.getClass().getName() + "; expected type: " + DoctorController.class.getName());
+                        + object.getClass().getName() + "; expected type: " + Doctor.class.getName());
             }
         }
     }

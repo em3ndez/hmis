@@ -26,6 +26,7 @@
                                         completeMethod="#{institutionController.completeSuppliers}" 
                                         styleClass="noPrintButton"
                                         forceSelection="true"
+                                        class="mx-2"
                                         var="w" itemLabel="#{w.name}" itemValue="#{w}"
                                         value="#{pharmacyReturnwithouttresing.toInstitution}" 
                                         id="acDept">
@@ -37,13 +38,11 @@
 
                                     <p:inputText value="#{pharmacyReturnwithouttresing.preBill.comments}" id="com"/>
 
-                                    <p:watermark value="Comment" for="com"/>
-                                    <p:watermark value="Return  Dealer/Supplier" for="acDept"/>
-                                    <p:spacer width="30"/>
+                                                                                                            <p:spacer width="30"/>
                                     <p:commandButton  accesskey="s" value="To Return" 
                                                       icon="fa-solid fa-rotate-left"
                                                       action="#{pharmacyReturnwithouttresing.settleBill()}" 
-                                                      class="ui-button-success"
+                                                      class="ui-button-success mx-2"
                                                       ajax="false"
                                                       actionListener="#{pharmacyReturnwithouttresing.calculateAllRates}">
                                         <f:facet name="title" >
@@ -51,7 +50,6 @@
                                             <h:outputLabel value="ettle"  ></h:outputLabel>
                                         </f:facet>
                                     </p:commandButton>
-                                    <p:spacer width="20"/>
                                     <p:commandButton accesskey="n" value="New Bill"
                                                      icon="fa fa-plus"
                                                      class="ui-button-warning"
@@ -74,6 +72,120 @@
                                 <div class="col-md-8">
                                     <p:panel>
                                         <f:facet name="header" >
+                                            <h:outputText styleClass="fa-solid fa-circle-plus" /> <!-- FontAwesome Icon -->
+                                            <h:outputText value="Add New Items" class="mx-4"></h:outputText>
+                                        </f:facet>
+                                        <div class="row w-100 m-1 p-1 boder-1">
+                                            <div class="col-md-5">
+                                                <p:focus id="focusForAcIx" for="acStock" ></p:focus>
+                                                <p:outputLabel 
+                                                    class="w-100" 
+                                                    for="acStock">Medicines/Devices</p:outputLabel>
+                                                <p:autoComplete 
+                                                    accesskey="i" 
+                                                    id="acStock" 
+                                                    inputStyleClass="w-100"
+                                                    minQueryLength="3" 
+                                                    maxResults="10" 
+                                                    class="w-100"
+                                                    forceSelection="true"
+                                                    value="#{pharmacyReturnwithouttresing.stock}" 
+                                                    completeMethod="#{stockController.completeAvailableStocks}" 
+                                                    var="i" 
+                                                    itemLabel="#{i.itemBatch.item.name}" 
+                                                    itemValue="#{i}">
+                                                    <p:column headerText="Item" styleClass="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-fatal': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-warn':''}">
+                                                        <h:outputText value="#{i.itemBatch.item.name}"  style="width: 300px!important;">
+                                                            &nbsp;<p:tag rendered="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'true': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'true':'false'}" value="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'Expired ': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'Expired Soon':''}" severity="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'danger': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'warning':''}" /> 
+                                                        </h:outputText>  
+                                                        <h:outputLabel value=" (" ></h:outputLabel>
+                                                        <h:outputText value="#{i.itemBatch.item.code}" style="width: 50px!important;"></h:outputText>
+                                                        <h:outputLabel value=") - " ></h:outputLabel>
+                                                        <h:outputText value="#{i.itemBatch.item.vmp.name}" style="width: 150px!important;"></h:outputText>
+                                                    </p:column>
+                                                    <p:column headerText="Rate" styleClass="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-fatal': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-warn':''}">
+                                                        <h:outputLabel value="#{i.itemBatch.retailsaleRate}" >
+                                                            <f:convertNumber pattern="#,##0.00" ></f:convertNumber>
+                                                        </h:outputLabel>
+                                                    </p:column>
+                                                    <p:column headerText="Stocks" styleClass="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-fatal': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-warn':''}">
+                                                        <h:outputLabel value="#{i.stock}" >
+                                                            <f:convertNumber pattern="#,###" ></f:convertNumber>
+                                                        </h:outputLabel>
+                                                    </p:column>
+                                                    <p:column headerText="Expiry" class="w-100" styleClass="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-fatal': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-warn':''}">
+                                                        <h:outputLabel value="#{i.itemBatch.dateOfExpire}" style="width: 100px!important;" >
+                                                            <f:convertDateTime pattern="#{sessionController.applicationPreference.shortDateFormat}" ></f:convertDateTime>
+                                                        </h:outputLabel>
+                                                    </p:column>
+                                                    <p:ajax event="focus" process="acStock :#{p:resolveFirstComponentWithId('acDept',view).clientId}"  ></p:ajax>
+                                                    <p:ajax event="itemSelect"   
+                                                            listener="#{pharmacyReturnwithouttresing.handleSelect}" 
+                                                            update="txtQty txtRate focusQty" ></p:ajax>
+                                                </p:autoComplete>
+
+                                            </div>
+                                            <div class="col-md-2">
+                                                <p:outputLabel 
+                                                    class="w-100"
+                                                    for="txtQty">Quantity</p:outputLabel>
+                                                <p:inputText 
+                                                    id="txtQty" 
+                                                    accesskey="q" 
+                                                    autocomplete="off" 
+                                                    class="w-100"
+                                                    style="text-align: right;"
+                                                    value="#{pharmacyReturnwithouttresing.qty}">
+                                                <p:ajax event="keyup"  listener="#{pharmacyReturnwithouttresing.calculateBillItemListner}" process="acStock txtQty :#{p:resolveFirstComponentWithId('acDept',view).clientId}" update="txtRate txtVal" ></p:ajax>
+                                                    <p:ajax event="blur"  listener="#{pharmacyReturnwithouttresing.calculateBillItemListner}" process="acStock txtQty :#{p:resolveFirstComponentWithId('acDept',view).clientId}" update="txtRate txtVal" ></p:ajax>
+                                                </p:inputText>
+
+                                            </div>
+                                            <div class="col-md-5">
+                                                <div class="row" >
+                                                    <div class="col-md-4">
+                                                        <p:outputLabel value="&nbsp;" class="w-100" ></p:outputLabel>
+                                                        <p:commandButton  accesskey="a" id="btnAdd" icon="fa fa-plus"
+                                                                  value="Add" 
+                                                                  class="ui-button-success"
+                                                                  ajax="false"
+                                                                  action="#{pharmacyReturnwithouttresing.addBillItem}"/>
+
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <p:outputLabel class="w-100" for="txtRate">Rate</p:outputLabel>
+                                                        <p:inputText 
+                                                            id="txtRate" 
+                                                            style="text-align: right;"
+                                                            class="w-100" 
+                                                            readonly="true"
+                                                            value="#{pharmacyReturnwithouttresing.billItem.netRate}">
+                                                            <f:convertNumber pattern="#,##0.00" />
+                                                        </p:inputText>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <p:outputLabel 
+                                                            class="w-100"
+                                                            value="Value"
+                                                            for="txtVal">
+                                                        </p:outputLabel>
+                                                        <p:inputText 
+                                                            readonly="true"
+                                                            id="txtVal" 
+                                                            class="w-100"
+                                                            style="text-align: right;"
+                                                            value="#{pharmacyReturnwithouttresing.billItem.netValue}">
+                                                            <f:convertNumber pattern="#,##0.00" />
+                                                        </p:inputText>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p:focus id="focusQty" for="txtQty"></p:focus>
+                                        <p:focus id="focusItem" for="acStock"></p:focus>
+                                    </p:panel>
+<!--                                    <p:panel>
+                                        <f:facet name="header" >
                                             <h:outputText styleClass="fas fa-circle-plus" />
                                             <h:outputLabel value="Add Items" class="mx-4"></h:outputLabel>
                                         </f:facet>
@@ -84,25 +196,28 @@
                                                                 value="#{pharmacyReturnwithouttresing.stock}" 
                                                                 completeMethod="#{stockController.completeAvailableStocks}" 
                                                                 var="i" itemLabel="#{i.itemBatch.item.name}" itemValue="#{i}" >
-                                                    <p:column headerText="Item">
-                                                        <h:outputLabel value="#{i.itemBatch.item.name}" ></h:outputLabel>
+                                                    <p:column headerText="Item" styleClass="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-fatal': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-warn':''}">
+                                                        <h:outputText value="#{i.itemBatch.item.name}"  style="width: 300px!important;">
+                                                            &nbsp;<p:tag rendered="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'true': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'true':'false'}" value="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'Expired ': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'Expired Soon':''}" severity="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'danger': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'warning':''}" /> 
+                                                        </h:outputText>  
+                                                        <h:outputLabel value=" (" ></h:outputLabel>
+                                                        <h:outputText value="#{i.itemBatch.item.code}" style="width: 50px!important;"></h:outputText>
+                                                        <h:outputLabel value=") - " ></h:outputLabel>
+                                                        <h:outputText value="#{i.itemBatch.item.vmp.name}" style="width: 150px!important;"></h:outputText>
                                                     </p:column>
-                                                    <p:column headerText="Code">
-                                                        <h:outputLabel value="#{i.itemBatch.item.code}" ></h:outputLabel>
-                                                    </p:column>
-                                                    <p:column headerText="Rate">
-                                                        <h:outputLabel value="#{i.itemBatch.purcahseRate}" >
+                                                    <p:column headerText="Rate" styleClass="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-fatal': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-warn':''}">
+                                                        <h:outputLabel value="#{i.itemBatch.retailsaleRate}" >
                                                             <f:convertNumber pattern="#,##0.00" ></f:convertNumber>
                                                         </h:outputLabel>
                                                     </p:column>
-                                                    <p:column headerText="Stocks">
+                                                    <p:column headerText="Stocks" styleClass="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-fatal': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-warn':''}">
                                                         <h:outputLabel value="#{i.stock}" >
                                                             <f:convertNumber pattern="#,###" ></f:convertNumber>
                                                         </h:outputLabel>
                                                     </p:column>
-                                                    <p:column headerText="Expiry">
-                                                        <h:outputLabel value="#{i.itemBatch.dateOfExpire}" >
-                                                            <f:convertDateTime pattern="#{sessionController.applicationPreference.longDateFormat}" ></f:convertDateTime>
+                                                    <p:column headerText="Expiry" class="w-100" styleClass="#{commonController.currentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-fatal': commonController.dateAfterThreeMonthsCurrentDateTime > i.itemBatch.dateOfExpire ?'ui-messages-warn':''}">
+                                                        <h:outputLabel value="#{i.itemBatch.dateOfExpire}" style="width: 100px!important;" >
+                                                            <f:convertDateTime pattern="#{sessionController.applicationPreference.shortDateFormat}" ></f:convertDateTime>
                                                         </h:outputLabel>
                                                     </p:column>
                                                     <p:ajax event="focus" process="acStock :#{p:resolveFirstComponentWithId('acDept',view).clientId}"  ></p:ajax>
@@ -158,7 +273,7 @@
                                             <p:focus id="focusItem" for="acStock" ></p:focus>
 
                                         </h:panelGrid>
-                                    </p:panel>
+                                    </p:panel>-->
                                     <p:panel id="pBis">
                                         <f:facet name="header" >
                                             <h:outputText styleClass="fas fa-money-bill" />
@@ -175,7 +290,7 @@
                                             <p:column headerText="Item">
                                                 <h:outputLabel value="#{bi.pharmaceuticalBillItem.itemBatch.item.name}" ></h:outputLabel>
                                             </p:column>
-                                            <p:column headerText="Quantity">
+                                            <p:column headerText="Qty">
                                                 <p:cellEditor>  
                                                     <f:facet name="output">  
                                                         <h:outputText value="#{bi.qty}" >
@@ -196,11 +311,11 @@
                                                     <f:convertNumber pattern="#,##0.00" />
                                                 </h:outputLabel>
                                             </p:column>
-                                            <p:column headerText="Margin Rate">
+<!--                                            <p:column headerText="Margin Rate">
                                                 <h:outputLabel value="#{bi.marginRate}" >
                                                     <f:convertNumber pattern="#,##0.00" />
                                                 </h:outputLabel>
-                                            </p:column>
+                                            </p:column>-->
 
                                             <p:column headerText="Net Rate">
                                                 <h:outputLabel value="#{bi.netRate}" >
@@ -212,11 +327,11 @@
                                                     <f:convertNumber pattern="#,##0.00" />
                                                 </h:outputLabel>
                                             </p:column>
-                                            <p:column headerText="Margin">
+<!--                                            <p:column headerText="Margin">
                                                 <h:outputLabel value="#{bi.marginValue}" >
                                                     <f:convertNumber pattern="#,##0.00" />
                                                 </h:outputLabel>
-                                            </p:column>
+                                            </p:column>-->
                                             <p:column headerText="Net Value">
                                                 <h:outputLabel value="#{bi.netValue}" id="gros" >
                                                     <f:convertNumber pattern="#,##0.00" />
@@ -229,7 +344,7 @@
 
                                             </p:column>
                                             <p:column headerText="Remove">
-                                                <p:commandButton value="Remove" action="#{pharmacyReturnwithouttresing.removeBillItem(bi)}" ajax="false" >
+                                                <p:commandButton class="ui-button-danger" icon="fas fa-trash" action="#{pharmacyReturnwithouttresing.removeBillItem(bi)}" ajax="false" >
 
                                                 </p:commandButton>
                                             </p:column>
@@ -347,14 +462,14 @@
 
                                              ajax="false" action="/pharmacy/pharmacy_return_withouttresing" 
                                              actionListener="#{pharmacyReturnwithouttresing.resetAll()}" ></p:commandButton>
-                                             <p:spacer width="100"/>
-                                 <p:outputLabel value="Paper Type" class="m-2"></p:outputLabel>
-                                <p:selectOneMenu value="#{sessionController.loggedPreference.pharmacyBillPaperType}" class="m-1" id='ph' style="width: 13em;">
-                                    <f:selectItem itemLabel="Please Select Paper Type" />
-                                    <f:selectItems value="#{enumController.paperTypes}" />
-                                </p:selectOneMenu>
-                                <p:commandButton ajax="false" icon="fa fa-sync-alt" class="ui-button" title="Redraw Bill"></p:commandButton>
-                            
+                            <p:spacer width="100"/>
+                            <p:outputLabel value="Paper Type" class="m-2"></p:outputLabel>
+                            <p:selectOneMenu value="#{sessionController.loggedPreference.pharmacyBillPaperType}" class="m-1" id='ph' style="width: 13em;">
+                                <f:selectItem itemLabel="Please Select Paper Type" />
+                                <f:selectItems value="#{enumController.paperTypes}" />
+                            </p:selectOneMenu>
+                            <p:commandButton ajax="false" icon="fa fa-sync-alt" class="ui-button" title="Redraw Bill"></p:commandButton>
+
 
                         </div>
                         <!--                        <div >

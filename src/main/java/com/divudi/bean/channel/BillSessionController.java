@@ -10,9 +10,7 @@ package com.divudi.bean.channel;
 
 import com.divudi.bean.common.*;
 import com.divudi.entity.BillSession;
-import com.divudi.entity.channel.SessionInstance;
 import com.divudi.facade.BillSessionFacade;
-import com.divudi.facade.SessionInstanceFacade;
 import java.io.Serializable;
 import java.util.List;
 import javax.ejb.EJB;
@@ -72,7 +70,6 @@ public class BillSessionController implements Serializable {
 
         @Override
         public Object getAsObject(FacesContext facesContext, UIComponent component, String value) {
-            System.out.println("BillSessionConverter value = " + value);
             if (value == null || value.length() == 0) {
                 return null;
             }

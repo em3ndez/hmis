@@ -73,7 +73,7 @@ public class InstitutionController implements Serializable {
     private int managaeInstitutionIndex = -1;
 
     public String toAdminManageInstitutions() {
-        return "/admin/institutions/admin_institutions_index";
+        return "/admin/institutions/admin_institutions_index?faces-redirect=true";
     }
 
     public String toListInstitutions() {
@@ -92,6 +92,11 @@ public class InstitutionController implements Serializable {
             return "";
         }
         return "/admin/institutions/institution?faces-redirect=true";
+    }
+    
+    public void makeNull(){
+        current = null;
+        
     }
 
     public String deleteInstitution() {
@@ -242,7 +247,7 @@ public class InstitutionController implements Serializable {
             agencies = completeInstitution(selectText, InstitutionType.Agency);
         }
 
-        commonController.printReportDetails(fromDate, toDate, startTime, "Channeling/Reports/Income report/Agent Reports/Agent details(/faces/channel/channel_report_agent_details.xhtml)");
+        
 
         return agencies;
     }
@@ -352,6 +357,7 @@ public class InstitutionController implements Serializable {
                 + " where i.name=:name"
                 + " and i.retired=:ret";
         Institution i = getFacade().findFirstByJpql(sql, m);
+      
         if (i == null) {
             i = new Institution();
             i.setName(name);
@@ -360,6 +366,38 @@ public class InstitutionController implements Serializable {
             i.setRetired(false);
             getFacade().edit(i);
         }
+        return i;
+    }
+    
+    public Institution findAndSaveInstitutionByCode(String code) {
+        if (code == null || code.trim().equals("")) {
+            return null;
+        }
+        String sql;
+        Map m = new HashMap();
+        m.put("code", code);
+        m.put("ret", false);
+        sql = "select i "
+                + " from Institution i "
+                + " where i.code=:code"
+                + " and i.retired=:ret";
+        Institution i = getFacade().findFirstByJpql(sql, m);
+        return i;
+    }
+    
+    public Institution findExistingInstitutionByName(String name) {
+        if (name == null || name.trim().equals("")) {
+            return null;
+        }
+        String sql;
+        Map m = new HashMap();
+        m.put("name", name);
+        m.put("ret", false);
+        sql = "select i "
+                + " from Institution i "
+                + " where i.name=:name"
+                + " and i.retired=:ret";
+        Institution i = getFacade().findFirstByJpql(sql, m);
         return i;
     }
 

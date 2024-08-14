@@ -5,10 +5,10 @@
 package com.divudi.data;
 
 /**
- *
  * @author Buddhika
  */
 public enum ReportItemType {
+
     Area,
     AutherizedName,
     AutherizedCode,
@@ -17,6 +17,7 @@ public enum ReportItemType {
     DataEntrySignature,
     DataEntryUserName,
     DataEntryUserDetails,
+    ApprovedAt,
     ApprovedSignature,
     ApprovedUserName,
     ApprovedUserDetails,
@@ -33,6 +34,7 @@ public enum ReportItemType {
     BilledTime,
     BillItemNo,
     BillNo,
+    DepartmentBillNo,
     Birthday,
     BloodGroup,
     Category,
@@ -57,6 +59,7 @@ public enum ReportItemType {
     PatientSex,
     Person,
     Phn,
+    PrintedAt,
     Phone,
     QrCodeDetails,
     QrCodeLink,
@@ -65,12 +68,14 @@ public enum ReportItemType {
     Religion,
     ReportedDate,
     ReportedTime,
+    ReceivedAt,
     SampledAt,
     SampledDate,
     SampledTime,
     Speciman,
     Surname,
-    Ward,;
+    Ward,
+    ;
 
     public String getLabel() {
         switch (this) {
@@ -105,7 +110,9 @@ public enum ReportItemType {
             case BillItemNo:
                 return "Bill Item No";
             case BillNo:
-                return "Bill No";
+                return "Bill No (Institution Bill No)";
+            case DepartmentBillNo:
+                return "Bill No (Department Bill No)";
             case Birthday:
                 return "Birthday";
             case BloodGroup:
@@ -186,9 +193,15 @@ public enum ReportItemType {
                 return "Data Entered User's Name";
             case DataEntryUserDetails:
                 return "Data Entered User's Details";
+            case ApprovedAt:
+                return "Approved Time";
+            case PrintedAt:
+                return "Printed Time";
+            case ReceivedAt:
+                return "Sample Received Time";
+
             default:
                 return this.toString();
         }
     }
-
 }
